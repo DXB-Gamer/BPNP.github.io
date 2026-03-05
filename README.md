@@ -721,7 +721,7 @@ canvas { display: block; }
 </div>
 
 <!-- DEVICE PICKER -->
-<div id="devicePicker" style="display:none;position:fixed;inset:0;z-index:10000;background:#000;flex-direction:column;align-items:center;justify-content:center;gap:28px;font-family:'Orbitron',monospace;">
+<div id="devicePicker" style="display:flex;position:fixed;inset:0;z-index:10000;background:#000;flex-direction:column;align-items:center;justify-content:center;gap:28px;font-family:'Orbitron',monospace;">
   <div style="color:#0ff;font-size:14px;letter-spacing:6px;text-shadow:0 0 18px #0ff;">SELECT YOUR DEVICE</div>
   <div style="color:rgba(0,255,255,0.45);font-size:9px;letter-spacing:4px;text-align:center;line-height:2;">OPTIMISES LAYOUT &amp; CONTROLS</div>
   <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
@@ -1527,9 +1527,11 @@ function drwTitle(ts){
   }
 }
 
-// ── Animated menu transitions ──
 let _menuTransTimer = null;
 function showMenu(id, instant){
+  // Don't show any game menu while device picker is still open
+  const picker = document.getElementById('devicePicker');
+  if (picker && picker.style.display !== 'none' && id) return;
   const all = ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu'];
   if(instant){
     all.forEach(m=>{ const el=document.getElementById(m); if(el){ el.classList.add('hidden'); el.classList.remove('menu-entering','menu-leaving'); } });
@@ -1948,6 +1950,9 @@ function _saveResume(){
 }
 
 function _showMainMenu(){
+  // Don't show main menu if device picker hasn't been dismissed yet
+  const picker = document.getElementById('devicePicker');
+  if (picker && picker.style.display !== 'none') return;
   ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu','wardrobeMenu'].forEach(m=>{
     const el=document.getElementById(m); if(el)el.classList.add('hidden');
   });
@@ -2388,11 +2393,11 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     const availH = Math.max(80, vh - barH);
 
     const scale = dtype === 'phone'
-      ? Math.min(vw / GW, availH / GH)  // fill width, constrain height
+      ? Math.max(vw / GW, availH / GH)  // COVER — stretch to fill, crop edges slightly if needed
       : Math.min((vw - 20) / GW, (availH - 10) / GH);
 
-    const left = dtype === 'phone' ? Math.round((vw - GW * scale) / 2) : Math.round(Math.max(0, (vw - GW * scale) / 2));
-    const top  = Math.round(Math.max(0, (availH - GH * scale) / 2));
+    const left = Math.round((vw - GW * scale) / 2);
+    const top  = Math.round((availH - GH * scale) / 2);
 
     gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${vh}px;overflow:hidden;display:block;background:#000;`;
     gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;`;
