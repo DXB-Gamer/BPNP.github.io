@@ -1020,18 +1020,7 @@ const S={
   crumble(){ tone(90,'sawtooth',0.12,0.18); },
 };
 let ambOn=false;
-function startAmbient(){
-  if(ambOn)return; ambOn=true;
-  try{
-    const a=AC();
-    [55,82.5,110].forEach(f=>{
-      const o=a.createOscillator(),g=a.createGain(),flt=a.createBiquadFilter();
-      o.type='sine'; o.frequency.value=f;
-      flt.type='lowpass'; flt.frequency.value=360; g.gain.value=0.033;
-      o.connect(flt); flt.connect(g); g.connect(a.destination); o.start();
-    });
-  }catch(e){}
-}
+function startAmbient(){ ambOn=true; /* ambient removed — was causing audio glitch */ }
 
 // ── Input ────────────────────────────────────
 const K={}, JP={};
@@ -2647,41 +2636,41 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
   function scaleGame() {
     const gc = document.getElementById('gameContainer');
     const gw = document.getElementById('gameWrapper');
-    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const dtype = window._deviceType;
 
-    // DESKTOP — clear inline styles
-    if (!isTouch) { gc.style.cssText = ''; gw.style.cssText = ''; return; }
+    // LAPTOP or no device chosen — native desktop layout, no scaling
+    if (!dtype || dtype === 'laptop') {
+      gc.style.cssText = '';
+      gw.style.cssText = '';
+      return;
+    }
 
     const GW = 900, GH = 540;
-    const vp   = window.visualViewport;
-    const vw   = vp ? vp.width  : window.innerWidth;
-    const vh   = vp ? vp.height : window.innerHeight;
+    const vp  = window.visualViewport;
+    const vw  = vp ? vp.width  : window.innerWidth;
+    const vh  = vp ? vp.height : window.innerHeight;
 
-    // Read ACTUAL rendered bar height (after CSS paint)
     const bar  = document.getElementById('mobileControls');
-    const barH = (bar && bar.offsetHeight > 10) ? bar.offsetHeight : (window._deviceCtrlH || 95);
-    const availH = Math.max(80, vh - barH);
+    const barH = (bar && bar.offsetHeight > 10) ? bar.offsetHeight : (window._deviceCtrlH || 110);
+    const safeB = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
+    const availH = Math.max(80, vh - barH - safeB);
 
-    const dtype = window._deviceType;
     let scale;
-
     if (dtype === 'phone') {
-      // PHONE: fill 100% of width — like every real mobile game
-      // Only constrain by height so nothing is cut off vertically
+      // Phone in landscape: fill full width edge-to-edge, constrain height
       scale = Math.min(vw / GW, availH / GH);
     } else {
-      // TABLET: fit with small breathing room — centered, clean
-      const PAD = 16;
-      scale = Math.min((vw - PAD * 2) / GW, (availH - PAD) / GH);
+      // Tablet: small padding so it breathes
+      scale = Math.min((vw - 24) / GW, (availH - 12) / GH);
     }
 
     const scaledW = GW * scale;
     const scaledH = GH * scale;
-    const left    = Math.max(0, (vw - scaledW) / 2);
-    const top     = Math.max(0, (availH - scaledH) / 2);
+    const left = Math.round(Math.max(0, (vw - scaledW) / 2));
+    const top  = Math.round(Math.max(0, (availH - scaledH) / 2));
 
     gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${availH}px;overflow:hidden;display:block;background:#000;`;
-    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;box-shadow:0 0 0 1px rgba(0,255,255,0.18),0 0 40px rgba(0,255,255,0.12),0 0 100px rgba(0,255,255,0.06),inset 0 0 80px rgba(0,0,0,0.6);`;
+    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;box-shadow:0 0 0 1px rgba(0,255,255,0.18),0 0 40px rgba(0,255,255,0.12);`;
   }
   window.scaleGame = scaleGame;
 
