@@ -1,51 +1,79 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-<meta name="screen-orientation" content="landscape">
-<meta name="x5-orientation" content="landscape">
-<meta name="full-screen" content="yes">
-<meta name="browsermode" content="application">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CUBIX — Neon Platformer</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-body {
+html, body {
+  width: 100%; height: 100%;
   background: #000;
   font-family: 'Orbitron', monospace;
   color: #0ff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
   overflow: hidden;
 }
 
-/* Wrapper — just centers the game */
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Wrapper centers the game on desktop */
 #gameWrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
+  height: 100%;
 }
 
-/* ── Outer container with premium edge glow ── */
-#gameContainer{
-  position:relative;
+/* ── Game container — desktop: fixed 900×540 ── */
+#gameContainer {
+  position: relative;
   width: 900px;
   height: 540px;
-  max-width: 100vw;
-  overflow:hidden;
+  overflow: hidden;
+  flex-shrink: 0;
   box-shadow:
     0 0 0 1px rgba(0,255,255,0.18),
     0 0 40px rgba(0,255,255,0.12),
     0 0 100px rgba(0,255,255,0.06),
     0 0 0 3px rgba(255,0,255,0.04),
     inset 0 0 80px rgba(0,0,0,0.6);
-  flex-shrink: 0;
 }
+
+/* ── On ANY touch device: scale game to fit screen ── */
+@media (hover: none) and (pointer: coarse) {
+  html, body { overflow: hidden; touch-action: none; }
+
+  #gameWrapper {
+    width: 100vw;
+    height: 100vh;
+    /* In landscape: leave room at bottom for controls */
+    padding-bottom: 110px;
+  }
+
+  #gameContainer {
+    /* Scale to fit available space while keeping 5:3 ratio */
+    width: 100% !important;
+    max-width: 100vw !important;
+    /* Height = available width × (540/900) = × 0.6 */
+    height: auto !important;
+    aspect-ratio: 900 / 540 !important;
+    /* Never taller than available vertical space */
+    max-height: calc(100vh - 115px) !important;
+  }
+
+  #gameContainer canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
 /* Corner accent marks */
 #gameContainer::before,#gameContainer::after{
   content:'';position:absolute;width:22px;height:22px;z-index:100;pointer-events:none;
@@ -71,6 +99,7 @@ body {
   margin-top: 4px;
 }
 .btn-row .btn { margin: 0; }
+canvas { display: block; }
 #gameCanvas{position:absolute;top:0;left:0;z-index:1;}
 #scanlineCanvas{position:absolute;top:0;left:0;z-index:2;pointer-events:none;opacity:0.08;}
 
@@ -371,10 +400,10 @@ body {
 }
 
 /* ══════════════════════════════════════════════════
-   MOBILE CONTROLS — Landscape-First Layout
+   MOBILE CONTROLS
    ══════════════════════════════════════════════════ */
 
-/* ── Portrait blocker: show rotate message ── */
+/* Portrait: ask user to rotate */
 #portraitBlock {
   display: none;
   position: fixed; inset: 0; z-index: 9999;
@@ -400,54 +429,34 @@ body {
   #portraitBlock { display: flex !important; }
 }
 
-/* ── Mobile control bar: overlay at bottom, doesn't push game ── */
+/* Control bar — fixed to bottom of screen, always visible on touch */
 #mobileControls {
   display: none;
-  width: 100%;
-  height: 120px;
   position: fixed;
   bottom: 0; left: 0; right: 0;
+  height: 105px;
+  z-index: 200;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  z-index: 100;
+  /* Subtle bg so buttons are readable over game */
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
 }
 
-/* ── On touch landscape: game fills entire viewport, controls float over bottom ── */
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  html, body {
-    height: 100vh;
-    overflow: hidden;
-  }
-  #mobileControls { display: flex !important; }
-  #gameContainer {
-    /* Full viewport — no stretch, game is native size */
-    width: 100vw !important;
-    max-width: 100vw !important;
-    height: 100vh !important;
-  }
-  #gameContainer canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-}
-
-/* ── Also show controls on any touch device ── */
 @media (hover: none) and (pointer: coarse) {
   #mobileControls { display: flex !important; }
 }
 
 .ctrl-zone {
   position: absolute;
-  bottom: 0;
+  bottom: 8px;
   pointer-events: all;
   display: flex;
   align-items: flex-end;
 }
 
-/* Controls sit right at the bottom edge of the floating bar */
-#ctrlLeft  { left: 20px;  flex-direction: row;    align-items: flex-end; gap: 10px; padding-bottom: 10px; }
-#ctrlRight { right: 20px; flex-direction: column; align-items: center;   gap: 8px;  padding-bottom: 10px; }
+#ctrlLeft  { left: 16px;  flex-direction: row; align-items: center; gap: 10px; }
+#ctrlRight { right: 16px; flex-direction: column; align-items: center; gap: 6px; bottom: 6px; }
 
 .ctrl-btn {
   border-radius: 50%;
