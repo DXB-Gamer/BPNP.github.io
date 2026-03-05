@@ -13,6 +13,7 @@ html, body {
   font-family: 'Orbitron', monospace;
   color: #0ff;
   overflow: hidden;
+  touch-action: none;
 }
 
 body {
@@ -21,7 +22,6 @@ body {
   justify-content: center;
 }
 
-/* Wrapper centers the game on desktop */
 #gameWrapper {
   display: flex;
   flex-direction: column;
@@ -31,7 +31,7 @@ body {
   height: 100%;
 }
 
-/* ── Game container — desktop: fixed 900×540 ── */
+/* ── Desktop: fixed 900×540, centered ── */
 #gameContainer {
   position: relative;
   width: 900px;
@@ -44,34 +44,6 @@ body {
     0 0 100px rgba(0,255,255,0.06),
     0 0 0 3px rgba(255,0,255,0.04),
     inset 0 0 80px rgba(0,0,0,0.6);
-}
-
-/* ── On ANY touch device: scale game to fit screen ── */
-@media (hover: none) and (pointer: coarse) {
-  html, body { overflow: hidden; touch-action: none; }
-
-  #gameWrapper {
-    width: 100vw;
-    height: 100vh;
-    /* In landscape: leave room at bottom for controls */
-    padding-bottom: 110px;
-  }
-
-  #gameContainer {
-    /* Scale to fit available space while keeping 5:3 ratio */
-    width: 100% !important;
-    max-width: 100vw !important;
-    /* Height = available width × (540/900) = × 0.6 */
-    height: auto !important;
-    aspect-ratio: 900 / 540 !important;
-    /* Never taller than available vertical space */
-    max-height: calc(100vh - 115px) !important;
-  }
-
-  #gameContainer canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
 }
 
 /* Corner accent marks */
@@ -429,18 +401,17 @@ canvas { display: block; }
   #portraitBlock { display: flex !important; }
 }
 
-/* Control bar — fixed to bottom of screen, always visible on touch */
+/* ── Control bar: fixed to bottom, floats over game ── */
 #mobileControls {
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 105px;
+  height: 110px;
   z-index: 200;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  /* Subtle bg so buttons are readable over game */
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -449,14 +420,14 @@ canvas { display: block; }
 
 .ctrl-zone {
   position: absolute;
-  bottom: 8px;
+  bottom: 10px;
   pointer-events: all;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
 }
 
-#ctrlLeft  { left: 16px;  flex-direction: row; align-items: center; gap: 10px; }
-#ctrlRight { right: 16px; flex-direction: column; align-items: center; gap: 6px; bottom: 6px; }
+#ctrlLeft  { left: 16px;  flex-direction: row;    gap: 10px; }
+#ctrlRight { right: 16px; flex-direction: column; gap: 6px; bottom: 8px; }
 
 .ctrl-btn {
   border-radius: 50%;
@@ -1051,7 +1022,10 @@ function hit(ax,ay,aw,ah,bx,by,bw,bh){
 function updPlats(dt){
   plats.forEach(pl=>{
     pl.t+=dt;
-    if(pl.type==='moving') pl.x=pl.origX+Math.sin(pl.t*(pl.speed||1))*(pl.moveX||80);
+    if(pl.type==='moving'){
+      pl.prevX = pl.x;
+      pl.x=pl.origX+Math.sin(pl.t*(pl.speed||1))*(pl.moveX||80);
+    }
     if(pl.type==='crumble'&&pl.crT>=0){
       pl.crT-=dt; pl.crA=Math.max(0,pl.crT/0.75);
       if(pl.crT<=0&&!pl.crumbled){ pl.crumbled=true; S.crumble(); }
@@ -1110,6 +1084,10 @@ function updP(dt){
     const bot=pl.y+pl.h-P.y;
     if(P.vy>=0&&top<=32&&top<bot){
       P.y=pl.y-PH; P.vy=0; P.onGnd=true; P.jumps=2; P.coyT=COY;
+      // Carry player with moving platform
+      if(pl.type==='moving' && pl.prevX !== undefined){
+        P.x += pl.x - pl.prevX;
+      }
       if(!wasGnd){
         S.land();
         if(top>6) burst(P.x+PW/2,P.y+PH,8,_CUBE_COLOR,2,0.3,4);
@@ -2301,6 +2279,45 @@ setInterval(()=>{
   document.addEventListener('touchmove', e => {
     e.preventDefault();
   }, { passive: false });
+
+  // ══════════════════════════════════════════
+  // MOBILE SCALE — keeps game 900×540 internally,
+  // scales it with CSS transform to fit any screen.
+  // Controls stay fixed at bottom, game shrinks UP.
+  // ══════════════════════════════════════════
+  function scaleGame() {
+    const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const gc = document.getElementById('gameContainer');
+    if (!isMobile) {
+      gc.style.transform = '';
+      gc.style.transformOrigin = '';
+      gc.style.marginTop = '';
+      return;
+    }
+    const W = 900, H = 540;
+    const CTRL_H = 110; // height of control bar
+    const availW = window.innerWidth;
+    const availH = window.innerHeight - CTRL_H;
+    const scale = Math.min(availW / W, availH / H);
+    const scaledW = W * scale;
+    const scaledH = H * scale;
+    // Offset so it sits at the top-center with a little breathing room
+    const offsetX = (availW - scaledW) / 2;
+    const offsetY = (availH - scaledH) / 2;
+    gc.style.transformOrigin = '0 0';
+    gc.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    gc.style.marginTop = '0';
+    // Wrapper needs to not interfere
+    document.getElementById('gameWrapper').style.display = 'block';
+    document.getElementById('gameWrapper').style.width = availW + 'px';
+    document.getElementById('gameWrapper').style.height = (availH) + 'px';
+    document.getElementById('gameWrapper').style.overflow = 'hidden';
+    document.getElementById('gameWrapper').style.position = 'relative';
+  }
+
+  scaleGame();
+  window.addEventListener('resize', scaleGame);
+  window.addEventListener('orientationchange', () => setTimeout(scaleGame, 150));
 
 })();
 </script>
