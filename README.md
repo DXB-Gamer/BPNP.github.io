@@ -415,7 +415,7 @@ canvas { display: block; }
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 105px;
+  height: 130px;
   z-index: 200;
   pointer-events: none;
   user-select: none;
@@ -429,14 +429,14 @@ canvas { display: block; }
 
 .ctrl-zone {
   position: absolute;
-  bottom: 22px;
+  bottom: 32px;
   pointer-events: all;
   display: flex;
   align-items: center;
 }
 
 #ctrlLeft  { left: 12px;  flex-direction: row;    gap: 14px; padding: 6px 10px; }
-#ctrlRight { right: 12px; flex-direction: column; gap: 8px;  bottom: 18px; padding: 6px 10px; }
+#ctrlRight { right: 12px; flex-direction: column; gap: 8px;  bottom: 28px; padding: 6px 10px; }
 
 .ctrl-btn {
   border-radius: 50%;
@@ -482,7 +482,7 @@ canvas { display: block; }
 
 /* ── Move buttons — neon cyan ── */
 #btnLeft, #btnRight {
-  width: 78px; height: 78px;
+  width: 94px; height: 94px;
   box-shadow: 0 0 8px rgba(0,255,255,0.12), inset 0 0 10px rgba(0,0,0,0.6);
 }
 #btnLeft.pressed, #btnRight.pressed {
@@ -494,7 +494,7 @@ canvas { display: block; }
 
 /* ── Jump button — magenta, biggest ── */
 #btnJump {
-  width: 86px; height: 86px;
+  width: 102px; height: 102px;
   border-color: rgba(255,0,200,0.45);
   background: rgba(8,0,10,0.6);
   box-shadow: 0 0 12px rgba(255,0,200,0.18), inset 0 0 12px rgba(0,0,0,0.6);
@@ -511,7 +511,7 @@ canvas { display: block; }
 
 /* ── Fly button — electric blue, owner only ── */
 #btnFly {
-  width: 64px; height: 64px;
+  width: 76px; height: 76px;
   border-color: rgba(60,140,255,0.45);
   background: rgba(0,4,18,0.6);
   box-shadow: 0 0 10px rgba(60,140,255,0.15), inset 0 0 10px rgba(0,0,0,0.6);
@@ -536,7 +536,7 @@ canvas { display: block; }
 
 /* ── Immortal / Shield button — gold, owner only ── */
 #btnImmort {
-  width: 70px; height: 70px;
+  width: 84px; height: 84px;
   border-color: rgba(220,170,0,0.4);
   background: rgba(10,7,0,0.62);
   box-shadow: 0 0 10px rgba(220,170,0,0.12), inset 0 0 10px rgba(0,0,0,0.6);
@@ -2302,7 +2302,7 @@ setInterval(()=>{
       return;
     }
     const GW = 900, GH = 540;
-    const CTRL_H = 105;
+    const CTRL_H = 130;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const availH = vh - CTRL_H;
