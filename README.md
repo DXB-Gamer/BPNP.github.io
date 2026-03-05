@@ -354,6 +354,14 @@ canvas { display: block; }
 @keyframes crownBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 .wd-silver-bg{background:linear-gradient(135deg,#6a7a8a,#d0dce8,#8899aa,#eef2f6,#7090a8);}
 .wd-gold-bg{background:linear-gradient(135deg,#7a5500,#ffd700,#b8860b,#ffe066,#7a5500);}
+.wd-premium-swatch.active.wd-gold-bg{
+  animation: goldGlow 1.4s ease-in-out infinite;
+  box-shadow: 0 0 18px rgba(255,200,0,0.8), 0 0 40px rgba(255,160,0,0.5);
+}
+@keyframes goldGlow {
+  0%,100%{ box-shadow: 0 0 14px rgba(255,200,0,0.7), 0 0 32px rgba(255,150,0,0.4); }
+  50%    { box-shadow: 0 0 28px rgba(255,220,0,1.0), 0 0 60px rgba(255,180,0,0.7); }
+}
 
 /* Checkpoint flag */
 #cpIndicator{
@@ -407,7 +415,7 @@ canvas { display: block; }
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 110px;
+  height: 105px;
   z-index: 200;
   pointer-events: none;
   user-select: none;
@@ -421,14 +429,14 @@ canvas { display: block; }
 
 .ctrl-zone {
   position: absolute;
-  bottom: 10px;
+  bottom: 22px;
   pointer-events: all;
   display: flex;
   align-items: center;
 }
 
-#ctrlLeft  { left: 16px;  flex-direction: row;    gap: 10px; }
-#ctrlRight { right: 16px; flex-direction: column; gap: 6px; bottom: 8px; }
+#ctrlLeft  { left: 12px;  flex-direction: row;    gap: 14px; padding: 6px 10px; }
+#ctrlRight { right: 12px; flex-direction: column; gap: 8px;  bottom: 18px; padding: 6px 10px; }
 
 .ctrl-btn {
   border-radius: 50%;
@@ -474,7 +482,7 @@ canvas { display: block; }
 
 /* ── Move buttons — neon cyan ── */
 #btnLeft, #btnRight {
-  width: 68px; height: 68px;
+  width: 78px; height: 78px;
   box-shadow: 0 0 8px rgba(0,255,255,0.12), inset 0 0 10px rgba(0,0,0,0.6);
 }
 #btnLeft.pressed, #btnRight.pressed {
@@ -486,7 +494,7 @@ canvas { display: block; }
 
 /* ── Jump button — magenta, biggest ── */
 #btnJump {
-  width: 76px; height: 76px;
+  width: 86px; height: 86px;
   border-color: rgba(255,0,200,0.45);
   background: rgba(8,0,10,0.6);
   box-shadow: 0 0 12px rgba(255,0,200,0.18), inset 0 0 12px rgba(0,0,0,0.6);
@@ -503,7 +511,7 @@ canvas { display: block; }
 
 /* ── Fly button — electric blue, owner only ── */
 #btnFly {
-  width: 54px; height: 54px;
+  width: 64px; height: 64px;
   border-color: rgba(60,140,255,0.45);
   background: rgba(0,4,18,0.6);
   box-shadow: 0 0 10px rgba(60,140,255,0.15), inset 0 0 10px rgba(0,0,0,0.6);
@@ -528,7 +536,7 @@ canvas { display: block; }
 
 /* ── Immortal / Shield button — gold, owner only ── */
 #btnImmort {
-  width: 60px; height: 60px;
+  width: 70px; height: 70px;
   border-color: rgba(220,170,0,0.4);
   background: rgba(10,7,0,0.62);
   box-shadow: 0 0 10px rgba(220,170,0,0.12), inset 0 0 10px rgba(0,0,0,0.6);
@@ -618,6 +626,8 @@ canvas { display: block; }
   <div id="screenFlash"></div>
   <div id="cpIndicator">✦ CHECKPOINT SAVED ✦</div>
   <div id="_lvlBadge"></div>
+  <!-- Mobile level switcher — visible to admin/owner only -->
+  <button id="_lvlSwitchBtn" style="display:none;position:absolute;top:6px;left:8px;z-index:20;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(0,255,100,0.7);background:rgba(0,0,0,0.6);border:1px solid rgba(0,255,100,0.25);padding:4px 8px;cursor:pointer;">LVL ▲</button>
 
   <!-- MAIN MENU -->
   <div class="menu" id="mainMenu">
@@ -1304,8 +1314,11 @@ function drwP(){
 
 function drwHUD(){
   CX.save();
+  // Lives centered at top
+  const totalW = lives * 26 - 8;
+  const startX = W/2 - totalW/2;
   for(let i=0;i<lives;i++){
-    const lx=18+i*26,ly=14;
+    const lx=startX+i*26, ly=14;
     CX.shadowBlur=10; CX.shadowColor=_CUBE_COLOR;
     CX.fillStyle=_cubeHUDFill; CX.fillRect(lx,ly,18,18);
     CX.strokeStyle=_CUBE_COLOR; CX.lineWidth=1.5; CX.strokeRect(lx,ly,18,18);
@@ -1322,10 +1335,10 @@ function drwHUD(){
   }
   CX.shadowBlur=8; CX.shadowColor='#0ff'; CX.fillStyle='#0ff';
   CX.font="10px 'Orbitron',monospace"; CX.textAlign='center';
-  CX.fillText(`LVL ${lvlIdx+1}  ${LEVELS[lvlIdx].name}`,W/2,20);
+  CX.fillText(`LVL ${lvlIdx+1}  ${LEVELS[lvlIdx].name}`,W/2,52);
   CX.fillStyle='#ff0'; CX.shadowColor='#ff0';
   CX.font="10px 'Share Tech Mono',monospace";
-  CX.fillText(`◆ ${colOrbs}/${totOrbs}`,W/2,36);
+  CX.fillText(`◆ ${colOrbs}/${totOrbs}`,W/2,66);
   CX.restore();
 }
 
@@ -1419,23 +1432,7 @@ document.getElementById('bHelp').onclick=()=>{
 };
 document.getElementById('bResume').onclick=()=>{ STATE='playing'; showMenu(null); };
 document.getElementById('bQuit').onclick=()=>{ STATE='menu'; _showMainMenu(); };
-document.getElementById('bNext').onclick=()=>{
-  if(lvlIdx<LEVELS.length-1){
-    lvlIdx++; initLvl(lvlIdx); STATE='playing'; showMenu(null);
-  } else {
-    if(score>hiScore){ hiScore=score; localStorage.setItem('cubix_hi',hiScore); }
-    document.getElementById('wSc').textContent=score;
-    document.getElementById('wBe').textContent=hiScore;
-    STATE='win'; showMenu('winMenu');
-  }
-};
-document.getElementById('bLCQ').onclick=()=>{ STATE='menu'; _showMainMenu(); };
-document.getElementById('bRe').onclick=()=>{
-  lives=3; dying=false; _respawnAtCheckpoint(); STATE='playing'; showMenu(null);
-};
-document.getElementById('bGOQ').onclick=()=>{ STATE='menu'; _showMainMenu(); };
-document.getElementById('bWP').onclick=()=>startGame(0);
-document.getElementById('bWM').onclick=()=>{ STATE='menu'; _showMainMenu(); };
+/* bNext, bRe, bLCQ, bGOQ, bWM, bQuit handlers defined below */
 
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){
@@ -1832,8 +1829,12 @@ document.getElementById('bNext').onclick=function(){
   }
 };
 
-document.getElementById('bRe').onclick=()=>{ lives=5; dying=false; _respawnAtCheckpoint(); };
 ['bQuit','bLCQ','bGOQ','bWM'].forEach(id=>{ document.getElementById(id).onclick=()=>{ STATE='menu'; _showMainMenu(); }; });
+document.getElementById('bWP').onclick=()=>startGame(0);
+document.getElementById('bRe').onclick=()=>{
+  dying=false; P.dead=false; lives=5; combo=1; comboT=0;
+  _respawnAtCheckpoint(); STATE='playing'; showMenu(null);
+};
 document.addEventListener('keydown',e=>{ if(e.code==='Escape'&&STATE==='playing'){STATE='paused';showMenu('pauseMenu');} });
 
 // ══════════════════════════════
@@ -2236,7 +2237,6 @@ setInterval(()=>{
   if (immBtn) {
     const _immToggle = e => {
       e.preventDefault();
-      if (typeof _priv === 'undefined' || _priv !== 'owner') return;
       immBtn.classList.add('pressed');
       setTimeout(() => immBtn.classList.remove('pressed'), 160);
       window.dispatchEvent(new KeyboardEvent('keydown', { code:'KeyI', shiftKey:true, bubbles:true }));
@@ -2282,9 +2282,9 @@ setInterval(()=>{
     try { AC(); } catch(e) {}
   }, { once: true });
 
-  // ── Prevent scroll/zoom during gameplay ──
+  // ── Allow scroll on menus, block during play to prevent accidental scroll ──
   document.addEventListener('touchmove', e => {
-    e.preventDefault();
+    if (typeof STATE !== 'undefined' && STATE === 'playing') e.preventDefault();
   }, { passive: false });
 
   // ══════════════════════════════════════════
@@ -2302,15 +2302,19 @@ setInterval(()=>{
       return;
     }
     const GW = 900, GH = 540;
-    const CTRL_H = 110;
+    const CTRL_H = 105;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const availH = vh - CTRL_H;
-    const scale = Math.min(vw / GW, availH / GH);
+    // Fill full screen width always; only cap if height would overflow
+    const scaleByWidth  = vw / GW;
+    const scaleByHeight = availH / GH;
+    // Use width-first scaling × 1.1 so it fills edge to edge
+    const scale = Math.min(scaleByWidth * 1.1, scaleByHeight);
     const scaledW = GW * scale;
     const scaledH = GH * scale;
-    const left = (vw - scaledW) / 2;
-    const top  = (availH - scaledH) / 2;
+    const left = Math.max(0, (vw - scaledW) / 2);
+    const top  = Math.max(0, (availH - scaledH) / 2);
 
     // Lock the wrapper to fill available space
     gw.style.cssText = `
@@ -2340,6 +2344,32 @@ setInterval(()=>{
   scaleGame();
   window.addEventListener('resize', scaleGame);
   window.addEventListener('orientationchange', () => setTimeout(scaleGame, 200));
+
+  // ── Mobile level switcher button ──
+  const lvlBtn = document.getElementById('_lvlSwitchBtn');
+  if (lvlBtn) {
+    lvlBtn.addEventListener('click', () => {
+      if (typeof _isAdmin === 'undefined' || !_isAdmin()) return;
+      const n = parseInt(prompt('Warp to level (1-10):'));
+      if (!isNaN(n) && n >= 1 && n <= 10) {
+        if (typeof _cpX !== 'undefined') { _cpX=null; _cpY=null; _cpLvl=null; }
+        lvlIdx = n - 1;
+        score=0; lives=5; combo=1; comboT=0; dying=false;
+        initLvl(lvlIdx);
+        if (typeof _initCheckpoints !== 'undefined') _initCheckpoints();
+        STATE = 'playing';
+        ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu','wardrobeMenu'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.classList.add('hidden');
+        });
+        try { startAmbient(); } catch(e) {}
+      }
+    });
+    // Show/hide based on privilege
+    setInterval(() => {
+      const isAdm = (typeof _isAdmin !== 'undefined' && _isAdmin());
+      lvlBtn.style.display = (isAdm && typeof STATE !== 'undefined' && STATE === 'playing') ? 'block' : 'none';
+    }, 400);
+  }
 
 })();
 </script>
