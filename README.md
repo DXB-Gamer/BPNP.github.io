@@ -68,9 +68,10 @@ body {
   gap: 14px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 .btn-row .btn { margin: 0; }
+
 canvas { display: block; }
 #gameCanvas{position:absolute;top:0;left:0;z-index:1;}
 #scanlineCanvas{position:absolute;top:0;left:0;z-index:2;pointer-events:none;opacity:0.08;}
@@ -163,7 +164,7 @@ canvas { display: block; }
 .menu-sub{
   font-size:11px;letter-spacing:8px;color:#f0f;
   text-shadow:0 0 8px #f0f,0 0 22px #f0f;
-  margin-bottom:32px;position:relative;
+  margin-bottom:16px;position:relative;
   animation:subPulse 3s ease-in-out infinite;
 }
 @keyframes subPulse{
@@ -214,7 +215,7 @@ canvas { display: block; }
 }
 
 /* ── STATS ── */
-.stats{display:flex;gap:48px;margin:16px 0;position:relative;}
+.stats{display:flex;gap:32px;margin:10px 0;position:relative;}
 .stat{text-align:center;}
 .stl{font-size:8px;color:rgba(255,255,255,0.25);letter-spacing:5px;margin-bottom:6px;}
 .stv{
@@ -624,12 +625,16 @@ canvas { display: block; }
     <div class="menu-title" data-text="CUBIX">CUBIX</div>
     <div class="menu-sub">BREACH THE GRID</div>
     <div class="menu-line"></div>
-    <div id="hiD">HIGH SCORE: <span id="hiV">0</span></div>
-    <button class="btn" id="bPlay">▶ &nbsp;PLAY</button>
-    <button class="btn" id="bResume2" style="display:none">⟳ &nbsp;RESUME</button>
-    <button class="btn p" id="bWardrobe">◈ &nbsp;WARDROBE</button>
-    <button class="btn p" id="bHelp">? &nbsp;CONTROLS</button>
-    <div id="ctrlBox" style="display:none">
+    <div id="hiD" style="margin-bottom:8px">HIGH SCORE: <span id="hiV">0</span></div>
+    <div class="btn-row">
+      <button class="btn" id="bPlay">▶ &nbsp;PLAY</button>
+      <button class="btn" id="bResume2" style="display:none">⟳ &nbsp;RESUME</button>
+      <button class="btn p" id="bWardrobe">◈ &nbsp;WARDROBE</button>
+    </div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn p" id="bHelp">? &nbsp;CONTROLS</button>
+    </div>
+    <div id="ctrlBox" style="display:none;margin-top:8px;font-size:10px;letter-spacing:2px;line-height:1.8;text-align:center;color:rgba(0,255,255,0.6)">
       A / ◀ &nbsp;&nbsp; ▶ / D &nbsp;&nbsp; MOVE<br>
       SPACE / ↑ &nbsp;&nbsp; JUMP &amp; DOUBLE JUMP<br>
       HOLD JUMP for higher arc &nbsp;|&nbsp; ESC pause
@@ -639,10 +644,12 @@ canvas { display: block; }
   <!-- PAUSE -->
   <div class="menu hidden" id="pauseMenu">
     <div class="menu-title" style="font-size:52px" data-text="PAUSED">PAUSED</div>
-    <div class="menu-sub" style="margin-bottom:28px">SYSTEM HALTED</div>
+    <div class="menu-sub" style="margin-bottom:16px">SYSTEM HALTED</div>
     <div class="menu-line"></div>
-    <button class="btn" id="bResume">▶ &nbsp;RESUME</button>
-    <button class="btn p" id="bQuit">⏹ &nbsp;MAIN MENU</button>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn" id="bResume">▶ &nbsp;RESUME</button>
+      <button class="btn p" id="bQuit">⏹ &nbsp;MAIN MENU</button>
+    </div>
   </div>
 
   <!-- LEVEL COMPLETE -->
@@ -2281,43 +2288,58 @@ setInterval(()=>{
   }, { passive: false });
 
   // ══════════════════════════════════════════
-  // MOBILE SCALE — keeps game 900×540 internally,
-  // scales it with CSS transform to fit any screen.
-  // Controls stay fixed at bottom, game shrinks UP.
+  // MOBILE SCALE
+  // Game stays 900×540. CSS transform scales it
+  // to fit the screen. Controls are fixed at bottom.
   // ══════════════════════════════════════════
   function scaleGame() {
-    const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const isMobile = ('ontouchstart' in window) || window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     const gc = document.getElementById('gameContainer');
+    const gw = document.getElementById('gameWrapper');
     if (!isMobile) {
-      gc.style.transform = '';
-      gc.style.transformOrigin = '';
-      gc.style.marginTop = '';
+      gc.style.cssText = '';
+      gw.style.cssText = '';
       return;
     }
-    const W = 900, H = 540;
-    const CTRL_H = 110; // height of control bar
-    const availW = window.innerWidth;
-    const availH = window.innerHeight - CTRL_H;
-    const scale = Math.min(availW / W, availH / H);
-    const scaledW = W * scale;
-    const scaledH = H * scale;
-    // Offset so it sits at the top-center with a little breathing room
-    const offsetX = (availW - scaledW) / 2;
-    const offsetY = (availH - scaledH) / 2;
-    gc.style.transformOrigin = '0 0';
-    gc.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    gc.style.marginTop = '0';
-    // Wrapper needs to not interfere
-    document.getElementById('gameWrapper').style.display = 'block';
-    document.getElementById('gameWrapper').style.width = availW + 'px';
-    document.getElementById('gameWrapper').style.height = (availH) + 'px';
-    document.getElementById('gameWrapper').style.overflow = 'hidden';
-    document.getElementById('gameWrapper').style.position = 'relative';
+    const GW = 900, GH = 540;
+    const CTRL_H = 110;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const availH = vh - CTRL_H;
+    const scale = Math.min(vw / GW, availH / GH);
+    const scaledW = GW * scale;
+    const scaledH = GH * scale;
+    const left = (vw - scaledW) / 2;
+    const top  = (availH - scaledH) / 2;
+
+    // Lock the wrapper to fill available space
+    gw.style.cssText = `
+      position: fixed;
+      top: 0; left: 0;
+      width: ${vw}px;
+      height: ${availH}px;
+      overflow: hidden;
+      display: block;
+    `;
+    // Scale game inside it
+    gc.style.cssText = `
+      position: absolute;
+      width: 900px;
+      height: 540px;
+      top: 0; left: 0;
+      transform-origin: 0 0;
+      transform: translate(${left}px, ${top}px) scale(${scale});
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,255,255,0.18),
+        0 0 40px rgba(0,255,255,0.12),
+        0 0 100px rgba(0,255,255,0.06),
+        inset 0 0 80px rgba(0,0,0,0.6);
+    `;
   }
 
   scaleGame();
   window.addEventListener('resize', scaleGame);
-  window.addEventListener('orientationchange', () => setTimeout(scaleGame, 150));
+  window.addEventListener('orientationchange', () => setTimeout(scaleGame, 200));
 
 })();
 </script>
