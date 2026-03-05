@@ -2364,7 +2364,7 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
   // DEVICE SIZES
   // ═══════════════════════════════════
   const DEVICE_SIZES = {
-    phone:  { left:68, jump:76, fly:54, immort:62, ctrlH:110, ctrlBottom:14, gap:10 },
+    phone:  { left:68, jump:76, fly:54, immort:62, ctrlH:90, ctrlBottom:10, gap:10 },
     tablet: { left:100, jump:116, fly:82, immort:94, ctrlH:150, ctrlBottom:28, gap:18 },
   };
 
@@ -2389,15 +2389,27 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     const vp  = window.visualViewport;
     const vw  = vp ? vp.width  : window.innerWidth;
     const vh  = vp ? vp.height : window.innerHeight;
-    const barH = window._deviceCtrlH || 110;
-    const availH = Math.max(80, vh - barH);
 
-    const scale = dtype === 'phone'
-      ? Math.max(vw / GW, availH / GH)  // COVER — stretch to fill, crop edges slightly if needed
-      : Math.min((vw - 20) / GW, (availH - 10) / GH);
+    let scale, left, top;
 
-    const left = Math.round((vw - GW * scale) / 2);
-    const top  = Math.round((availH - GH * scale) / 2);
+    if (dtype === 'phone') {
+      // Fill the FULL screen — controls float ON TOP (like every real mobile game)
+      scale = Math.min(vw / GW, vh / GH);
+      left  = Math.round((vw - GW * scale) / 2);
+      top   = Math.round((vh - GH * scale) / 2);
+    } else {
+      const barH = window._deviceCtrlH || 150;
+      const availH = Math.max(80, vh - barH);
+      scale = Math.min((vw - 20) / GW, (availH - 10) / GH);
+      left  = Math.round((vw - GW * scale) / 2);
+      top   = Math.round((availH - GH * scale) / 2);
+    }
+
+    gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${vh}px;overflow:hidden;display:block;background:#000;`;
+    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;`;
+
+    gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${vh}px;overflow:hidden;display:block;background:#000;`;
+    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;`;
 
     gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${vh}px;overflow:hidden;display:block;background:#000;`;
     gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;`;
@@ -2518,39 +2530,38 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     btnJump:  ['Space'],
   };
 
-  const _held = {};
-
+  // Direct K/JP manipulation — reliable on all mobile browsers
   function _press(key) {
-    if (_held[key]) return;
-    _held[key] = true;
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: key, bubbles: true }));
+    if (typeof K !== 'undefined') K[key] = true;
+    if (typeof JP !== 'undefined') JP[key] = true;
+    // Also dispatch on document for any other listeners
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: key, bubbles: true }));
   }
   function _release(key) {
-    if (!_held[key]) return;
-    _held[key] = false;
-    window.dispatchEvent(new KeyboardEvent('keyup', { code: key, bubbles: true }));
+    if (typeof K !== 'undefined') K[key] = false;
+    document.dispatchEvent(new KeyboardEvent('keyup', { code: key, bubbles: true }));
   }
 
   Object.entries(BTN_MAP).forEach(([btnId, keys]) => {
     const el = document.getElementById(btnId);
     if (!el) return;
     el.addEventListener('touchstart', e => { e.preventDefault(); keys.forEach(_press); el.classList.add('pressed'); }, { passive: false });
-    el.addEventListener('touchend',   e => { e.preventDefault(); keys.forEach(_release); el.classList.remove('pressed'); }, { passive: false });
-    el.addEventListener('touchcancel',e => { keys.forEach(_release); el.classList.remove('pressed'); });
+    el.addEventListener('touchend',   e => { e.preventDefault(); keys.forEach(k => { if(typeof K!=='undefined') K[k]=false; }); keys.forEach(_release); el.classList.remove('pressed'); }, { passive: false });
+    el.addEventListener('touchcancel',e => { keys.forEach(k => { if(typeof K!=='undefined') K[k]=false; }); keys.forEach(_release); el.classList.remove('pressed'); });
   });
 
   // Fly button
   const flyBtn = document.getElementById('btnFly');
   if (flyBtn) {
     flyBtn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      flyBtn.classList.add('pressed');
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true }));
+      e.preventDefault(); flyBtn.classList.add('pressed');
+      if(typeof K!=='undefined') K['KeyF']=true;
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true }));
     }, { passive: false });
     flyBtn.addEventListener('touchend', e => {
-      e.preventDefault();
-      flyBtn.classList.remove('pressed');
-      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyF', bubbles: true }));
+      e.preventDefault(); flyBtn.classList.remove('pressed');
+      if(typeof K!=='undefined') K['KeyF']=false;
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyF', bubbles: true }));
     }, { passive: false });
   }
 
@@ -2558,14 +2569,14 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
   const immBtn = document.getElementById('btnImmort');
   if (immBtn) {
     immBtn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      immBtn.classList.add('pressed');
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', bubbles: true }));
+      e.preventDefault(); immBtn.classList.add('pressed');
+      if(typeof K!=='undefined') K['KeyI']=true;
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', bubbles: true }));
     }, { passive: false });
     immBtn.addEventListener('touchend', e => {
-      e.preventDefault();
-      immBtn.classList.remove('pressed');
-      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyI', bubbles: true }));
+      e.preventDefault(); immBtn.classList.remove('pressed');
+      if(typeof K!=='undefined') K['KeyI']=false;
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyI', bubbles: true }));
     }, { passive: false });
   }
 
