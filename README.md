@@ -2,6 +2,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>CUBIX — Neon Platformer</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -13,7 +15,10 @@ html, body {
   font-family: 'Orbitron', monospace;
   color: #0ff;
   overflow: hidden;
-  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent iOS text selection on buttons */
+  -webkit-touch-callout: none;
 }
 
 body {
@@ -73,7 +78,7 @@ body {
 .btn-row .btn { margin: 0; }
 
 canvas { display: block; }
-#gameCanvas{position:absolute;top:0;left:0;z-index:1;}
+#gameCanvas{position:absolute;top:0;left:0;z-index:1;touch-action:none;-webkit-touch-callout:none;}
 #scanlineCanvas{position:absolute;top:0;left:0;z-index:2;pointer-events:none;opacity:0.08;}
 
 /* Menu particle canvas — sits behind all menus */
@@ -384,7 +389,7 @@ canvas { display: block; }
    MOBILE CONTROLS
    ══════════════════════════════════════════════════ */
 
-/* Portrait: ask user to rotate */
+/* Portrait block — shown via JS only after user picks PHONE */
 #portraitBlock {
   display: none;
   position: fixed; inset: 0; z-index: 9999;
@@ -393,37 +398,49 @@ canvas { display: block; }
   align-items: center; justify-content: center;
   gap: 20px;
 }
-#portraitBlock .rot-icon { font-size: 60px; animation: rotHint 1.6s ease-in-out infinite; }
+#portraitBlock .rot-icon {
+  font-size: 72px;
+  animation: rotHint 1.4s ease-in-out infinite;
+  display: block;
+}
 @keyframes rotHint {
   0%,100% { transform: rotate(0deg); }
   50%      { transform: rotate(-90deg); }
 }
+#portraitBlock .rot-arrow {
+  font-size: 48px;
+  animation: rotHint 1.4s ease-in-out infinite;
+  opacity: 0.6;
+}
 #portraitBlock p {
   font-family: 'Orbitron', monospace;
-  color: rgba(0,255,255,0.65);
+  color: rgba(0,255,255,0.75);
   font-size: 11px;
-  letter-spacing: 4px;
+  letter-spacing: 5px;
   text-align: center;
-  line-height: 2.2;
-}
-@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-  #portraitBlock { display: flex !important; }
+  line-height: 2.4;
+  text-shadow: 0 0 12px rgba(0,255,255,0.4);
 }
 
-/* ── Control bar: fixed to bottom, floats over game ── */
+/* ── Control bar: fixed to bottom, iPhone + iPad + Android ── */
 #mobileControls {
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 130px;
+  height: var(--ctrl-bar-h, 115px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 200;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
 }
 
-@media (hover: none) and (pointer: coarse) {
+/* Any touch device: phone, iPad, Android tablet */
+@media (pointer: coarse) {
+  #mobileControls { display: flex !important; }
+}
+@media (hover: none) {
   #mobileControls { display: flex !important; }
 }
 
@@ -480,9 +497,17 @@ canvas { display: block; }
   background: radial-gradient(circle, rgba(0,255,255,0.14) 0%, transparent 70%);
 }
 
+:root {
+  --btn-lr:   64px;
+  --btn-jump: 72px;
+  --btn-fly:  50px;
+  --btn-imm:  58px;
+  --ctrl-bar-h: 115px;
+}
+
 /* ── Move buttons — neon cyan ── */
 #btnLeft, #btnRight {
-  width: 94px; height: 94px;
+  width: var(--btn-lr); height: var(--btn-lr);
   box-shadow: 0 0 8px rgba(0,255,255,0.12), inset 0 0 10px rgba(0,0,0,0.6);
 }
 #btnLeft.pressed, #btnRight.pressed {
@@ -494,7 +519,7 @@ canvas { display: block; }
 
 /* ── Jump button — magenta, biggest ── */
 #btnJump {
-  width: 102px; height: 102px;
+  width: var(--btn-jump); height: var(--btn-jump);
   border-color: rgba(255,0,200,0.45);
   background: rgba(8,0,10,0.6);
   box-shadow: 0 0 12px rgba(255,0,200,0.18), inset 0 0 12px rgba(0,0,0,0.6);
@@ -511,7 +536,7 @@ canvas { display: block; }
 
 /* ── Fly button — electric blue, owner only ── */
 #btnFly {
-  width: 76px; height: 76px;
+  width: var(--btn-fly); height: var(--btn-fly);
   border-color: rgba(60,140,255,0.45);
   background: rgba(0,4,18,0.6);
   box-shadow: 0 0 10px rgba(60,140,255,0.15), inset 0 0 10px rgba(0,0,0,0.6);
@@ -536,7 +561,7 @@ canvas { display: block; }
 
 /* ── Immortal / Shield button — gold, owner only ── */
 #btnImmort {
-  width: 84px; height: 84px;
+  width: var(--btn-imm); height: var(--btn-imm);
   border-color: rgba(220,170,0,0.4);
   background: rgba(10,7,0,0.62);
   box-shadow: 0 0 10px rgba(220,170,0,0.12), inset 0 0 10px rgba(0,0,0,0.6);
@@ -608,14 +633,108 @@ canvas { display: block; }
   left: auto !important;
   z-index: 200 !important;
 }
+
+/* ── MENU TRANSITION — zoom-out/in effect ── */
+@keyframes menuZoomIn {
+  from { transform: scale(1.18); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@keyframes menuZoomOut {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(0.84); opacity: 0; }
+}
+@keyframes btnPop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  65%  { transform: scale(1.06); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.menu-entering {
+  animation: menuZoomIn 0.38s cubic-bezier(0.22,0.61,0.36,1) forwards !important;
+}
+.menu-leaving {
+  animation: menuZoomOut 0.28s ease-in forwards !important;
+  pointer-events: none !important;
+}
+.menu-entering .btn {
+  animation: btnPop 0.35s cubic-bezier(0.22,0.61,0.36,1) both;
+}
+.menu-entering .btn:nth-child(1) { animation-delay: 0.10s; }
+.menu-entering .btn:nth-child(2) { animation-delay: 0.17s; }
+.menu-entering .btn:nth-child(3) { animation-delay: 0.24s; }
+/* ── CONFIRM DIALOG ── */
+#cubixConfirm {
+  display: none;
+  position: fixed; inset: 0; z-index: 20000;
+  background: rgba(0,0,0,0.92);
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 18px;
+  font-family: 'Orbitron', monospace;
+}
+#cubixConfirm.show { display: flex; }
+#cubixConfirm .cf-title {
+  color: #f66; font-size: 13px; letter-spacing: 5px;
+  text-shadow: 0 0 16px #f44;
+  text-align: center; line-height: 1.8;
+}
+#cubixConfirm .cf-msg {
+  color: rgba(255,255,255,0.55); font-size: 9px;
+  letter-spacing: 3px; text-align: center; line-height: 2;
+}
+#cubixConfirm .cf-btns { display: flex; gap: 16px; }
+#cubixConfirm .cf-yes {
+  padding: 12px 28px; border: 1px solid rgba(255,60,60,0.6);
+  background: rgba(255,60,60,0.08); color: #f66;
+  font-family: 'Orbitron', monospace; font-size: 10px;
+  letter-spacing: 4px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+#cubixConfirm .cf-yes:hover, #cubixConfirm .cf-yes:active { background: rgba(255,60,60,0.22); }
+#cubixConfirm .cf-no {
+  padding: 12px 28px; border: 1px solid rgba(0,255,255,0.3);
+  background: rgba(0,255,255,0.04); color: #0ff;
+  font-family: 'Orbitron', monospace; font-size: 10px;
+  letter-spacing: 4px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+#cubixConfirm .cf-no:hover, #cubixConfirm .cf-no:active { background: rgba(0,255,255,0.12); }
 </style>
 </head>
 <body>
 
+<!-- Confirm dialog (reboot / switch device) -->
+<div id="cubixConfirm">
+  <div class="cf-title" id="cfTitle">REBOOT ALL DATA?</div>
+  <div class="cf-msg" id="cfMsg">YOUR PROGRESS WILL BE LOST</div>
+  <div class="cf-btns">
+    <button class="cf-yes" id="cfYes">YES</button>
+    <button class="cf-no"  id="cfNo">NO</button>
+  </div>
+</div>
+
 <!-- Portrait rotation prompt -->
 <div id="portraitBlock">
   <div class="rot-icon">📱</div>
-  <p>ROTATE YOUR DEVICE<br>TO LANDSCAPE MODE<br>TO PLAY CUBIX</p>
+  <div class="rot-arrow">↻</div>
+  <p>ROTATE TO<br>LANDSCAPE<br>TO PLAY CUBIX</p>
+</div>
+
+<!-- DEVICE PICKER -->
+<div id="devicePicker" style="display:none;position:fixed;inset:0;z-index:10000;background:#000;flex-direction:column;align-items:center;justify-content:center;gap:28px;font-family:'Orbitron',monospace;">
+  <div style="color:#0ff;font-size:14px;letter-spacing:6px;text-shadow:0 0 18px #0ff;">SELECT YOUR DEVICE</div>
+  <div style="color:rgba(0,255,255,0.45);font-size:9px;letter-spacing:4px;text-align:center;line-height:2;">OPTIMISES LAYOUT &amp; CONTROLS</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+    <button id="bDevPhone" style="width:140px;padding:20px 0;border:1px solid rgba(0,255,255,0.4);background:rgba(0,255,255,0.04);color:#0ff;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;-webkit-tap-highlight-color:transparent;">
+      <span style="font-size:32px;">📱</span>PHONE
+    </button>
+    <button id="bDevIpad" style="width:140px;padding:20px 0;border:1px solid rgba(255,0,255,0.4);background:rgba(255,0,255,0.04);color:#f0f;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;-webkit-tap-highlight-color:transparent;">
+      <span style="font-size:32px;">📲</span>TABLET
+    </button>
+    <button id="bDevLaptop" style="width:140px;padding:20px 0;border:1px solid rgba(0,255,100,0.4);background:rgba(0,255,100,0.04);color:#0f6;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;-webkit-tap-highlight-color:transparent;">
+      <span style="font-size:32px;">💻</span>LAPTOP
+    </button>
+  </div>
 </div>
 
 <div id="gameWrapper">
@@ -626,6 +745,27 @@ canvas { display: block; }
   <div id="screenFlash"></div>
   <div id="cpIndicator">✦ CHECKPOINT SAVED ✦</div>
   <div id="_lvlBadge"></div>
+  <!-- Pause button — sits top-right of canvas, visible during play -->
+  <button id="_pauseBtn" style="
+    display:none;
+    position:absolute;
+    top:8px; right:8px;
+    z-index:20;
+    width:34px; height:34px;
+    border-radius:6px;
+    border:1.5px solid rgba(0,255,255,0.35);
+    background:rgba(0,0,0,0.55);
+    color:rgba(0,255,255,0.9);
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    transition:background 0.15s, box-shadow 0.15s;
+  ">⏸</button>
   <!-- Mobile level switcher — visible to admin/owner only -->
   <button id="_lvlSwitchBtn" style="display:none;position:absolute;top:6px;left:8px;z-index:20;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(0,255,100,0.7);background:rgba(0,0,0,0.6);border:1px solid rgba(0,255,100,0.25);padding:4px 8px;cursor:pointer;">LVL ▲</button>
 
@@ -643,6 +783,10 @@ canvas { display: block; }
     </div>
     <div class="btn-row" style="margin-top:4px">
       <button class="btn p" id="bHelp">? &nbsp;CONTROLS</button>
+      <button class="btn p" id="bSwitchDevice">⇄ &nbsp;SWITCH DEVICE</button>
+    </div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn p" id="bReboot" style="border-color:rgba(255,60,60,0.5);color:#f66;text-shadow:0 0 8px rgba(255,80,80,0.8);">⚠ &nbsp;REBOOT</button>
     </div>
     <div id="ctrlBox" style="display:none;margin-top:8px;font-size:10px;letter-spacing:2px;line-height:1.8;text-align:center;color:rgba(0,255,255,0.6)">
       A / ◀ &nbsp;&nbsp; ▶ / D &nbsp;&nbsp; MOVE<br>
@@ -1394,10 +1538,31 @@ function drwTitle(ts){
   }
 }
 
-function showMenu(id){
-  ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu']
-    .forEach(m=>document.getElementById(m).classList.add('hidden'));
-  if(id) document.getElementById(id).classList.remove('hidden');
+// ── Animated menu transitions ──
+let _menuTransTimer = null;
+function showMenu(id, instant){
+  const all = ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu'];
+  if(instant){
+    all.forEach(m=>{ const el=document.getElementById(m); if(el){ el.classList.add('hidden'); el.classList.remove('menu-entering','menu-leaving'); } });
+    if(id){ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); }
+    return;
+  }
+  // Zoom-out any currently visible menu, then zoom-in new one
+  const visible = all.map(m=>document.getElementById(m)).filter(el=>el&&!el.classList.contains('hidden'));
+  if(visible.length && id){
+    visible.forEach(el=>{ el.classList.add('menu-leaving'); });
+    if(_menuTransTimer) clearTimeout(_menuTransTimer);
+    _menuTransTimer = setTimeout(()=>{
+      visible.forEach(el=>{ el.classList.add('hidden'); el.classList.remove('menu-leaving','menu-entering'); });
+      const next = document.getElementById(id);
+      if(next){ next.classList.remove('hidden','menu-leaving'); next.classList.add('menu-entering');
+        setTimeout(()=>next.classList.remove('menu-entering'), 400); }
+    }, 260);
+  } else {
+    all.forEach(m=>{ const el=document.getElementById(m); if(el){ el.classList.add('hidden'); el.classList.remove('menu-entering','menu-leaving'); } });
+    if(id){ const el=document.getElementById(id); if(el){ el.classList.remove('hidden'); el.classList.add('menu-entering');
+      setTimeout(()=>el.classList.remove('menu-entering'), 400); } }
+  }
 }
 function showLC(){
   STATE='levelcomplete';
@@ -1421,7 +1586,7 @@ function showGO(){
 function startGame(from=0){
   lvlIdx=from; score=0; lives=3; combo=1; comboT=0; dying=false;
   _cpX=null; _cpY=null; _cpLvl=null;
-  initLvl(lvlIdx); STATE='playing'; showMenu(null); startAmbient();
+  initLvl(lvlIdx); STATE='playing'; showMenu(null, true); startAmbient();
   _gameStarted=true; _saveResume();
 }
 
@@ -1430,7 +1595,7 @@ document.getElementById('bHelp').onclick=()=>{
   const b=document.getElementById('ctrlBox');
   b.style.display=b.style.display==='none'?'block':'none';
 };
-document.getElementById('bResume').onclick=()=>{ STATE='playing'; showMenu(null); };
+document.getElementById('bResume').onclick=()=>{ STATE='playing'; showMenu(null, true); };
 document.getElementById('bQuit').onclick=()=>{ STATE='menu'; _showMainMenu(); };
 /* bNext, bRe, bLCQ, bGOQ, bWM, bQuit handlers defined below */
 
@@ -1442,7 +1607,9 @@ document.addEventListener('keydown',e=>{
 });
 
 document.getElementById('hiV').textContent=hiScore;
-showMenu('mainMenu');
+
+// Always hide menu on load — device picker (script below) will show menu after choice
+showMenu(null, true);
 requestAnimationFrame(ts=>{ last=ts; loop(ts); });
 </script>
 
@@ -1819,8 +1986,12 @@ document.getElementById('bNext').onclick=function(){
   if(lvlIdx===6) _unlockSilver();
   if(lvlIdx===9) _unlockGold();
   if(lvlIdx<LEVELS.length-1){
-    lvlIdx++;_cpX=null;_cpY=null;_cpLvl=null;
-    initLvl(lvlIdx);_initCheckpoints();STATE='playing';showMenu(null);
+    // Zoom out lcMenu, then start next level
+    showMenu(null); // triggers zoom-out of lcMenu
+    setTimeout(()=>{
+      lvlIdx++;_cpX=null;_cpY=null;_cpLvl=null;
+      initLvl(lvlIdx);_initCheckpoints();STATE='playing';
+    }, 300);
   } else {
     if(score>hiScore){hiScore=score;localStorage.setItem('cubix_hi',hiScore);}
     document.getElementById('wSc').textContent=score;
@@ -1832,8 +2003,10 @@ document.getElementById('bNext').onclick=function(){
 ['bQuit','bLCQ','bGOQ','bWM'].forEach(id=>{ document.getElementById(id).onclick=()=>{ STATE='menu'; _showMainMenu(); }; });
 document.getElementById('bWP').onclick=()=>startGame(0);
 document.getElementById('bRe').onclick=()=>{
-  dying=false; P.dead=false; lives=5; combo=1; comboT=0;
-  _respawnAtCheckpoint(); STATE='playing'; showMenu(null);
+  // Retry from checkpoint — give 3 lives back and respawn
+  dying=false; P.dead=false;
+  lives = 3; combo=1; comboT=0;
+  _respawnAtCheckpoint(); STATE='playing'; showMenu(null, true);
 };
 document.addEventListener('keydown',e=>{ if(e.code==='Escape'&&STATE==='playing'){STATE='paused';showMenu('pauseMenu');} });
 
@@ -2025,7 +2198,8 @@ window.addEventListener('keydown',e=>{
   else _applyColor(Math.min(saved,9));
 
   _rebuildPremiumSlots();
-  _showMainMenu();
+  // DO NOT call _showMainMenu() here — initDevicePicker() handles showing the menu
+  // after the device is chosen
   _renderWardrobePreview();
 })();
 
@@ -2107,7 +2281,7 @@ window.addEventListener('keydown',e=>{
 })();
 
 // ══════════════════════════════
-//  11. LEVEL BADGE UPDATER
+//  11. LEVEL BADGE UPDATER + PAUSE BUTTON
 // ══════════════════════════════
 setInterval(()=>{
   const badge=document.getElementById('_lvlBadge');
@@ -2119,7 +2293,69 @@ setInterval(()=>{
       badge.style.opacity='0';
     }
   }
+  // Show pause button only during gameplay
+  const pb=document.getElementById('_pauseBtn');
+  if(pb){ pb.style.display=(typeof STATE!=='undefined'&&STATE==='playing')?'flex':'none'; }
 },200);
+
+// Wire pause button — deferred so DOM is guaranteed ready
+setTimeout(()=>{
+  const pb=document.getElementById('_pauseBtn');
+  if(!pb) return;
+  function doPause(e){ e.preventDefault(); e.stopPropagation();
+    if(typeof STATE==='undefined') return;
+    if(STATE==='playing'){ STATE='paused'; showMenu('pauseMenu'); pb.textContent='⏸'; }
+    else if(STATE==='paused'){ STATE='playing'; showMenu(null,true); pb.textContent='⏸'; }
+  }
+  pb.addEventListener('touchstart', doPause, {passive:false});
+  pb.addEventListener('click', doPause);
+},0);
+
+// ══════════════════════════════════════════
+// CONFIRM DIALOG ENGINE
+// ══════════════════════════════════════════
+function cubixConfirm(title, msg, onYes) {
+  const dlg   = document.getElementById('cubixConfirm');
+  const tEl   = document.getElementById('cfTitle');
+  const mEl   = document.getElementById('cfMsg');
+  const yBtn  = document.getElementById('cfYes');
+  const nBtn  = document.getElementById('cfNo');
+  tEl.textContent = title;
+  mEl.textContent = msg;
+  dlg.classList.add('show');
+  // Remove old listeners by cloning
+  const yNew = yBtn.cloneNode(true); yBtn.parentNode.replaceChild(yNew, yBtn);
+  const nNew = nBtn.cloneNode(true); nBtn.parentNode.replaceChild(nNew, nBtn);
+  function close() { document.getElementById('cubixConfirm').classList.remove('show'); }
+  document.getElementById('cfYes').addEventListener('click', () => { close(); onYes(); });
+  document.getElementById('cfNo').addEventListener('click',  close);
+}
+
+// ALL localStorage keys used by the game
+const _ALL_KEYS = ['cubix_hi','cubix_swatch','cubix_silver_unlocked','cubix_gold_unlocked',
+  'cubix_started','cubix_resumeLvl','cubix_resumeX','cubix_resumeY','cubix_v2','cubix_device'];
+
+// ── REBOOT button ──
+document.getElementById('bReboot').addEventListener('click', () => {
+  cubixConfirm('⚠ REBOOT ALL DATA?', 'YOUR PROGRESS WILL BE LOST', () => {
+    cubixConfirm('ARE YOU SURE?', 'THIS CANNOT BE UNDONE', () => {
+      _ALL_KEYS.forEach(k => localStorage.removeItem(k));
+      // Clear device choice and show picker again on reload
+      location.reload();
+    });
+  });
+});
+
+// ── SWITCH DEVICE button ──
+document.getElementById('bSwitchDevice').addEventListener('click', () => {
+  cubixConfirm('SWITCH DEVICE?', 'YOUR PROGRESS IS SAVED — ONLY LAYOUT CHANGES', () => {
+    localStorage.removeItem('cubix_device');
+    window._deviceType = null;
+    // Re-wire picker buttons to use window.applyDeviceLayout
+    const picker = document.getElementById('devicePicker');
+    if (picker) picker.style.display = 'flex';
+  });
+});
 
 </script>
 
@@ -2277,73 +2513,302 @@ setInterval(()=>{
     ctrl.style.pointerEvents = inPlay ? '' : 'none';
   }, 200);
 
-  // ── Unlock audio on first touch ──
-  document.addEventListener('touchstart', () => {
-    try { AC(); } catch(e) {}
-  }, { once: true });
+  // ── iOS Audio unlock — must resume AudioContext on every touch ──
+  function _unlockAudio() {
+    try {
+      const a = AC();
+      if (a.state === 'suspended') a.resume();
+      // Play a silent buffer — forces iOS to fully activate audio
+      const buf = a.createBuffer(1, 1, 22050);
+      const src = a.createBufferSource();
+      src.buffer = buf; src.connect(a.destination); src.start(0);
+    } catch(e) {}
+  }
+  document.addEventListener('touchstart', _unlockAudio, { passive: true });
+  document.addEventListener('touchend',   _unlockAudio, { passive: true });
+
+  // ── Rich mobile sound effects ──
+  function _mTone(freq, type, dur, vol, delay=0) {
+    setTimeout(() => {
+      try {
+        const a=AC(), o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.type=type; o.frequency.value=freq;
+        g.gain.setValueAtTime(0, a.currentTime);
+        g.gain.linearRampToValueAtTime(vol, a.currentTime+0.012);
+        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+dur);
+        o.start(); o.stop(a.currentTime+dur+0.05);
+      } catch(e) {}
+    }, delay);
+  }
+
+  // Button tap — satisfying click
+  function _sfxTap() {
+    _mTone(1200, 'sine',     0.04, 0.12);
+    _mTone(600,  'triangle', 0.06, 0.08, 20);
+  }
+  // Menu open — whoosh up
+  function _sfxMenuOpen() {
+    _mTone(200, 'sine', 0.18, 0.10);
+    _mTone(320, 'sine', 0.16, 0.09, 60);
+    _mTone(480, 'sine', 0.14, 0.08, 120);
+  }
+  // Level clear fanfare
+  function _sfxLevelClear() {
+    [523,659,784,1047].forEach((f,i) => _mTone(f, 'sine', 0.22, 0.14, i*90));
+  }
+  // Game over sting
+  function _sfxGameOver() {
+    _mTone(440, 'sawtooth', 0.3,  0.18);
+    _mTone(330, 'sawtooth', 0.35, 0.16, 180);
+    _mTone(220, 'sawtooth', 0.5,  0.20, 380);
+  }
+  // Device chosen — positive confirm
+  function _sfxConfirm() {
+    _mTone(440, 'sine', 0.12, 0.12);
+    _mTone(660, 'sine', 0.16, 0.14, 80);
+    _mTone(880, 'sine', 0.20, 0.12, 160);
+  }
+  // Pause
+  function _sfxPause() {
+    _mTone(660, 'sine', 0.12, 0.10);
+    _mTone(440, 'sine', 0.18, 0.10, 80);
+  }
+
+  // Wire sounds to mobile buttons
+  ['btnLeft','btnRight','btnJump','btnFly','btnImmort'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('touchstart', _sfxTap, { passive: true });
+  });
+
+  // Wire sounds to menu buttons
+  ['bPlay','bResume','bResume2','bNext','bWP','bWardrobe','bSwitchDevice','bReboot',
+   'bDevPhone','bDevIpad','bDevLaptop','bHelp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('touchstart', () => { _sfxTap(); }, { passive: true });
+  });
+  ['bDevPhone','bDevIpad','bDevLaptop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', _sfxConfirm);
+  });
+
+  // Pause button sound
+  const _pb = document.getElementById('_pauseBtn');
+  if (_pb) _pb.addEventListener('touchstart', _sfxPause, { passive: true });
+
+  // Hook into game events for richer sounds
+  const _origShowLC = window.showLC || null;
+  setInterval(() => {
+    if (typeof STATE !== 'undefined') {
+      if (STATE === 'levelcomplete' && !window._sfxLCPlayed) {
+        window._sfxLCPlayed = true; _sfxLevelClear();
+      } else if (STATE !== 'levelcomplete') {
+        window._sfxLCPlayed = false;
+      }
+      if (STATE === 'gameover' && !window._sfxGOPlayed) {
+        window._sfxGOPlayed = true; _sfxGameOver();
+      } else if (STATE !== 'gameover') {
+        window._sfxGOPlayed = false;
+      }
+      if ((STATE === 'paused') && !window._sfxPausePlayed) {
+        window._sfxPausePlayed = true; _sfxPause();
+      } else if (STATE !== 'paused') {
+        window._sfxPausePlayed = false;
+      }
+    }
+  }, 150);
 
   // ── Allow scroll on menus, block during play to prevent accidental scroll ──
   document.addEventListener('touchmove', e => {
     if (typeof STATE !== 'undefined' && STATE === 'playing') e.preventDefault();
   }, { passive: false });
 
+
   // ══════════════════════════════════════════
-  // MOBILE SCALE
-  // Game stays 900×540. CSS transform scales it
-  // to fit the screen. Controls are fixed at bottom.
+  // DEVICE PICKER — phone vs tablet
   // ══════════════════════════════════════════
+  let _deviceType = localStorage.getItem('cubix_device') || null;
+  window._deviceType  = _deviceType;
+  window._deviceCtrlH = (_deviceType === 'tablet') ? 150 : 95;
+
+  // Genuinely different sizes — phone is compact, tablet is large
+  const DEVICE_SIZES = {
+    phone: {
+      left:68, jump:76, fly:54, immort:62,
+      ctrlH:110, ctrlBottom:14, gap:10,
+    },
+    tablet: {
+      left:100, jump:116, fly:82, immort:94,
+      ctrlH:150, ctrlBottom:28, gap:18,
+    },
+  };
+
+  // scaleGame defined FIRST so applyDeviceLayout can call it
   function scaleGame() {
-    const isMobile = ('ontouchstart' in window) || window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     const gc = document.getElementById('gameContainer');
     const gw = document.getElementById('gameWrapper');
-    if (!isMobile) {
-      gc.style.cssText = '';
-      gw.style.cssText = '';
-      return;
-    }
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    // DESKTOP — clear inline styles
+    if (!isTouch) { gc.style.cssText = ''; gw.style.cssText = ''; return; }
+
     const GW = 900, GH = 540;
-    const CTRL_H = 130;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const availH = vh - CTRL_H;
-    // Fill full screen width always; only cap if height would overflow
-    const scaleByWidth  = vw / GW;
-    const scaleByHeight = availH / GH;
-    // Use width-first scaling × 1.1 so it fills edge to edge
-    const scale = Math.min(scaleByWidth * 1.1, scaleByHeight);
+    const vp   = window.visualViewport;
+    const vw   = vp ? vp.width  : window.innerWidth;
+    const vh   = vp ? vp.height : window.innerHeight;
+
+    // Read ACTUAL rendered bar height (after CSS paint)
+    const bar  = document.getElementById('mobileControls');
+    const barH = (bar && bar.offsetHeight > 10) ? bar.offsetHeight : (window._deviceCtrlH || 95);
+    const availH = Math.max(80, vh - barH);
+
+    const dtype = window._deviceType;
+    let scale;
+
+    if (dtype === 'phone') {
+      // PHONE: fill 100% of width — like every real mobile game
+      // Only constrain by height so nothing is cut off vertically
+      scale = Math.min(vw / GW, availH / GH);
+    } else {
+      // TABLET: fit with small breathing room — centered, clean
+      const PAD = 16;
+      scale = Math.min((vw - PAD * 2) / GW, (availH - PAD) / GH);
+    }
+
     const scaledW = GW * scale;
     const scaledH = GH * scale;
-    const left = Math.max(0, (vw - scaledW) / 2);
-    const top  = Math.max(0, (availH - scaledH) / 2);
+    const left    = Math.max(0, (vw - scaledW) / 2);
+    const top     = Math.max(0, (availH - scaledH) / 2);
 
-    // Lock the wrapper to fill available space
-    gw.style.cssText = `
-      position: fixed;
-      top: 0; left: 0;
-      width: ${vw}px;
-      height: ${availH}px;
-      overflow: hidden;
-      display: block;
-    `;
-    // Scale game inside it
-    gc.style.cssText = `
-      position: absolute;
-      width: 900px;
-      height: 540px;
-      top: 0; left: 0;
-      transform-origin: 0 0;
-      transform: translate(${left}px, ${top}px) scale(${scale});
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(0,255,255,0.18),
-        0 0 40px rgba(0,255,255,0.12),
-        0 0 100px rgba(0,255,255,0.06),
-        inset 0 0 80px rgba(0,0,0,0.6);
-    `;
+    gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${availH}px;overflow:hidden;display:block;background:#000;`;
+    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;box-shadow:0 0 0 1px rgba(0,255,255,0.18),0 0 40px rgba(0,255,255,0.12),0 0 100px rgba(0,255,255,0.06),inset 0 0 80px rgba(0,0,0,0.6);`;
+  }
+  window.scaleGame = scaleGame;
+
+  // applyDeviceLayout: set CSS vars directly on :root — no specificity fights
+  function applyDeviceLayout(type) {
+    _deviceType = type;
+    window._deviceType  = type;
+    window._deviceCtrlH = DEVICE_SIZES[type].ctrlH;
+    localStorage.setItem('cubix_device', type);
+    const s = DEVICE_SIZES[type];
+
+    // Set CSS variables directly on documentElement — always takes effect immediately
+    const root = document.documentElement;
+    root.style.setProperty('--btn-lr',     s.left   + 'px');
+    root.style.setProperty('--btn-jump',   s.jump   + 'px');
+    root.style.setProperty('--btn-fly',    s.fly    + 'px');
+    root.style.setProperty('--btn-imm',    s.immort + 'px');
+    root.style.setProperty('--ctrl-bar-h', s.ctrlH  + 'px');
+
+    // Set ctrl-zone bottom + gaps directly on elements
+    document.querySelectorAll('.ctrl-zone').forEach(z => z.style.bottom = s.ctrlBottom + 'px');
+    const cl = document.getElementById('ctrlLeft');
+    const cr = document.getElementById('ctrlRight');
+    if (cl) cl.style.gap = s.gap + 'px';
+    if (cr) cr.style.gap = Math.round(s.gap * 0.55) + 'px';
+
+    // Double rAF ensures layout is painted before we measure/scale
+    requestAnimationFrame(() => requestAnimationFrame(scaleGame));
+  }
+  window.applyDeviceLayout = applyDeviceLayout;
+
+  // ── DEVICE PICKER — always shown first, no exceptions ──
+  function tryLockLandscape() {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      } else if (screen.lockOrientation)    { screen.lockOrientation('landscape'); }
+        else if (screen.mozLockOrientation) { screen.mozLockOrientation('landscape'); }
+        else if (screen.msLockOrientation)  { screen.msLockOrientation('landscape'); }
+    } catch(e) {}
   }
 
+  function _checkPortrait() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const pb = document.getElementById('portraitBlock');
+    if (pb) pb.style.display = isPortrait ? 'flex' : 'none';
+    if (!isPortrait) scaleGame();
+  }
+
+  function _afterDeviceChosen(type) {
+    // Hide picker and portrait blocker
+    const picker = document.getElementById('devicePicker');
+    const pb     = document.getElementById('portraitBlock');
+    if (picker) picker.style.display = 'none';
+    if (pb)     pb.style.display     = 'none';
+
+    if (type === 'laptop') {
+      // Laptop — clear any mobile overrides, show menu
+      document.documentElement.style.removeProperty('--btn-lr');
+      document.documentElement.style.removeProperty('--btn-jump');
+      document.documentElement.style.removeProperty('--btn-fly');
+      document.documentElement.style.removeProperty('--btn-imm');
+      document.documentElement.style.removeProperty('--ctrl-bar-h');
+      const gc = document.getElementById('gameContainer');
+      const gw = document.getElementById('gameWrapper');
+      if (gc) gc.style.cssText = '';
+      if (gw) gw.style.cssText = '';
+    } else {
+      applyDeviceLayout(type);
+    }
+
+    if (type === 'phone') {
+      tryLockLandscape();
+      _checkPortrait();
+      window.addEventListener('resize', _checkPortrait);
+      window.addEventListener('orientationchange', () => setTimeout(_checkPortrait, 200));
+    }
+
+    showMenu('mainMenu');
+  }
+
+  function initDevicePicker() {
+    const saved = localStorage.getItem('cubix_device');
+    if (saved && sessionStorage.getItem('cubix_device_chosen')) {
+      // Same browser session — skip picker, apply saved layout
+      _afterDeviceChosen(saved);
+      return;
+    }
+    // Always show picker on fresh page load
+    const picker = document.getElementById('devicePicker');
+    if (picker) picker.style.display = 'flex';
+  }
+
+  const bPhone  = document.getElementById('bDevPhone');
+  const bIpad   = document.getElementById('bDevIpad');
+  const bLaptop = document.getElementById('bDevLaptop');
+
+  if (bPhone)  bPhone.addEventListener('click',  () => { localStorage.setItem('cubix_device','phone');  sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('phone');  });
+  if (bIpad)   bIpad.addEventListener('click',   () => { localStorage.setItem('cubix_device','tablet'); sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('tablet'); });
+  if (bLaptop) bLaptop.addEventListener('click', () => { localStorage.setItem('cubix_device','laptop'); sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('laptop'); });
+
+  initDevicePicker();
+
+
+
+  // Read iOS safe-area-inset-bottom via a probe element
+  (function() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);pointer-events:none;';
+    document.body.appendChild(probe);
+    const sab = probe.getBoundingClientRect().height || 0;
+    document.documentElement.style.setProperty('--sab', sab + 'px');
+    document.body.removeChild(probe);
+  })();
+
   scaleGame();
+
+  // Re-scale on resize AND when iOS visual viewport changes (keyboard, browser chrome)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scaleGame);
+    window.visualViewport.addEventListener('scroll', scaleGame);
+  }
   window.addEventListener('resize', scaleGame);
-  window.addEventListener('orientationchange', () => setTimeout(scaleGame, 200));
+  window.addEventListener('orientationchange', () => {
+    setTimeout(scaleGame, 100);
+    setTimeout(scaleGame, 400); // double-fire — iOS fires orientationchange before resize completes
+  });
 
   // ── Mobile level switcher button ──
   const lvlBtn = document.getElementById('_lvlSwitchBtn');
