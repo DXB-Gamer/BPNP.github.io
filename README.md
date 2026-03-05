@@ -2355,290 +2355,25 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
 (function() {
   'use strict';
 
-  // ── Touch/click handlers for move + jump ──
-  const BTN_MAP = {
-    btnLeft:  ['ArrowLeft'],
-    btnRight: ['ArrowRight'],
-    btnJump:  ['Space', 'ArrowUp'],
-  };
-
-  const _activeTouches = {};
-
-  function pressBtn(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.add('pressed');
-    const codes = BTN_MAP[id];
-    if (!codes) return;
-    codes.forEach(code => {
-      if (!K[code]) JP[code] = true;
-      K[code] = true;
-    });
-  }
-
-  function releaseBtn(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('pressed');
-    const codes = BTN_MAP[id];
-    if (!codes) return;
-    codes.forEach(code => { K[code] = false; });
-  }
-
-  ['btnLeft', 'btnRight', 'btnJump'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    el.addEventListener('touchstart', e => {
-      e.preventDefault();
-      Array.from(e.changedTouches).forEach(t => {
-        if (!_activeTouches[id]) _activeTouches[id] = new Set();
-        _activeTouches[id].add(t.identifier);
-      });
-      pressBtn(id);
-    }, { passive: false });
-
-    el.addEventListener('touchend', e => {
-      e.preventDefault();
-      Array.from(e.changedTouches).forEach(t => {
-        if (_activeTouches[id]) _activeTouches[id].delete(t.identifier);
-      });
-      if (!_activeTouches[id] || _activeTouches[id].size === 0) releaseBtn(id);
-    }, { passive: false });
-
-    el.addEventListener('touchcancel', e => {
-      e.preventDefault();
-      if (_activeTouches[id]) _activeTouches[id].clear();
-      releaseBtn(id);
-    }, { passive: false });
-
-    // Mouse fallback for desktop testing
-    el.addEventListener('mousedown', e => { e.preventDefault(); pressBtn(id); });
-    window.addEventListener('mouseup', () => releaseBtn(id));
-  });
-
-  // ── FLY BUTTON — hold to fly up, tap to toggle fly mode ──
-  const flyBtn = document.getElementById('btnFly');
-  if (flyBtn) {
-    let _flyHeld = false;
-
-    const _flyStart = e => {
-      e.preventDefault();
-      _flyHeld = true;
-      flyBtn.classList.add('pressed');
-      // If fly mode active → push up
-      if (typeof _flying !== 'undefined' && _flying) {
-        K['ArrowUp'] = true; JP['ArrowUp'] = true;
-      } else {
-        // Toggle fly mode on tap
-        window.dispatchEvent(new KeyboardEvent('keydown', { code:'KeyF', shiftKey:true, bubbles:true }));
-        setTimeout(() => {
-          if (typeof _flying !== 'undefined' && _flying) {
-            K['ArrowUp'] = true; JP['ArrowUp'] = true;
-            flyBtn.classList.add('fly-active');
-          } else {
-            flyBtn.classList.remove('fly-active');
-          }
-        }, 40);
-      }
-    };
-
-    const _flyEnd = e => {
-      if(e) e.preventDefault();
-      _flyHeld = false;
-      flyBtn.classList.remove('pressed');
-      K['ArrowUp'] = false;
-    };
-
-    flyBtn.addEventListener('touchstart', _flyStart, { passive: false });
-    flyBtn.addEventListener('touchend',   _flyEnd,   { passive: false });
-    flyBtn.addEventListener('touchcancel',_flyEnd,   { passive: false });
-    flyBtn.addEventListener('mousedown',  _flyStart);
-    window.addEventListener('mouseup',    _flyEnd);
-  }
-
-  // ── IMMORTAL BUTTON — tap to toggle ──
-  const immBtn = document.getElementById('btnImmort');
-  if (immBtn) {
-    const _immToggle = e => {
-      e.preventDefault();
-      immBtn.classList.add('pressed');
-      setTimeout(() => immBtn.classList.remove('pressed'), 160);
-      window.dispatchEvent(new KeyboardEvent('keydown', { code:'KeyI', shiftKey:true, bubbles:true }));
-      setTimeout(() => {
-        if (typeof _immortal !== 'undefined' && _immortal) {
-          immBtn.classList.add('immort-active');
-        } else {
-          immBtn.classList.remove('immort-active');
-        }
-      }, 50);
-    };
-    immBtn.addEventListener('touchstart', _immToggle, { passive: false });
-    immBtn.addEventListener('mousedown',  _immToggle);
-  }
-
-  // ── Sync owner-only button visibility & states ──
-  setInterval(() => {
-    const isOwner = (typeof _priv !== 'undefined' && _priv === 'owner');
-    const flyEl  = document.getElementById('btnFly');
-    const immEl  = document.getElementById('btnImmort');
-
-    if (flyEl) {
-      flyEl.classList.toggle('owner-visible', isOwner);
-      flyEl.classList.toggle('fly-active', isOwner && typeof _flying !== 'undefined' && _flying);
-    }
-    if (immEl) {
-      immEl.classList.toggle('owner-visible', isOwner);
-      immEl.classList.toggle('immort-active', isOwner && typeof _immortal !== 'undefined' && _immortal);
-    }
-  }, 350);
-
-  // ── Dim controls when not playing ──
-  setInterval(() => {
-    const ctrl = document.getElementById('mobileControls');
-    if (!ctrl) return;
-    const inPlay = (typeof STATE !== 'undefined' && STATE === 'playing');
-    ctrl.style.opacity     = inPlay ? '1' : '0.1';
-    ctrl.style.pointerEvents = inPlay ? '' : 'none';
-  }, 200);
-
-  // ── iOS Audio unlock — must resume AudioContext on every touch ──
-  function _unlockAudio() {
-    try {
-      const a = AC();
-      if (a.state === 'suspended') a.resume();
-      // Play a silent buffer — forces iOS to fully activate audio
-      const buf = a.createBuffer(1, 1, 22050);
-      const src = a.createBufferSource();
-      src.buffer = buf; src.connect(a.destination); src.start(0);
-    } catch(e) {}
-  }
-  document.addEventListener('touchstart', _unlockAudio, { passive: true });
-  document.addEventListener('touchend',   _unlockAudio, { passive: true });
-
-  // ── Rich mobile sound effects ──
-  function _mTone(freq, type, dur, vol, delay=0) {
-    setTimeout(() => {
-      try {
-        const a=AC(), o=a.createOscillator(), g=a.createGain();
-        o.connect(g); g.connect(a.destination);
-        o.type=type; o.frequency.value=freq;
-        g.gain.setValueAtTime(0, a.currentTime);
-        g.gain.linearRampToValueAtTime(vol, a.currentTime+0.012);
-        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+dur);
-        o.start(); o.stop(a.currentTime+dur+0.05);
-      } catch(e) {}
-    }, delay);
-  }
-
-  // Button tap — satisfying click
-  function _sfxTap() {
-    _mTone(1200, 'sine',     0.04, 0.12);
-    _mTone(600,  'triangle', 0.06, 0.08, 20);
-  }
-  // Menu open — whoosh up
-  function _sfxMenuOpen() {
-    _mTone(200, 'sine', 0.18, 0.10);
-    _mTone(320, 'sine', 0.16, 0.09, 60);
-    _mTone(480, 'sine', 0.14, 0.08, 120);
-  }
-  // Level clear fanfare
-  function _sfxLevelClear() {
-    [523,659,784,1047].forEach((f,i) => _mTone(f, 'sine', 0.22, 0.14, i*90));
-  }
-  // Game over sting
-  function _sfxGameOver() {
-    _mTone(440, 'sawtooth', 0.3,  0.18);
-    _mTone(330, 'sawtooth', 0.35, 0.16, 180);
-    _mTone(220, 'sawtooth', 0.5,  0.20, 380);
-  }
-  // Device chosen — positive confirm
-  function _sfxConfirm() {
-    _mTone(440, 'sine', 0.12, 0.12);
-    _mTone(660, 'sine', 0.16, 0.14, 80);
-    _mTone(880, 'sine', 0.20, 0.12, 160);
-  }
-  // Pause
-  function _sfxPause() {
-    _mTone(660, 'sine', 0.12, 0.10);
-    _mTone(440, 'sine', 0.18, 0.10, 80);
-  }
-
-  // Wire sounds to mobile buttons
-  ['btnLeft','btnRight','btnJump','btnFly','btnImmort'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('touchstart', _sfxTap, { passive: true });
-  });
-
-  // Wire sounds to menu buttons
-  ['bPlay','bResume','bResume2','bNext','bWP','bWardrobe','bSwitchDevice','bReboot',
-   'bDevPhone','bDevIpad','bDevLaptop','bHelp'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('touchstart', () => { _sfxTap(); }, { passive: true });
-  });
-  ['bDevPhone','bDevIpad','bDevLaptop'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('click', _sfxConfirm);
-  });
-
-  // Pause button sound
-  const _pb = document.getElementById('_pauseBtn');
-  if (_pb) _pb.addEventListener('touchstart', _sfxPause, { passive: true });
-
-  // Hook into game events for richer sounds
-  const _origShowLC = window.showLC || null;
-  setInterval(() => {
-    if (typeof STATE !== 'undefined') {
-      if (STATE === 'levelcomplete' && !window._sfxLCPlayed) {
-        window._sfxLCPlayed = true; _sfxLevelClear();
-      } else if (STATE !== 'levelcomplete') {
-        window._sfxLCPlayed = false;
-      }
-      if (STATE === 'gameover' && !window._sfxGOPlayed) {
-        window._sfxGOPlayed = true; _sfxGameOver();
-      } else if (STATE !== 'gameover') {
-        window._sfxGOPlayed = false;
-      }
-      if ((STATE === 'paused') && !window._sfxPausePlayed) {
-        window._sfxPausePlayed = true; _sfxPause();
-      } else if (STATE !== 'paused') {
-        window._sfxPausePlayed = false;
-      }
-    }
-  }, 150);
-
-  // ── Allow scroll on menus, block during play to prevent accidental scroll ──
-  document.addEventListener('touchmove', e => {
-    if (typeof STATE !== 'undefined' && STATE === 'playing') e.preventDefault();
-  }, { passive: false });
-
-
-  // ══════════════════════════════════════════
-  // DEVICE PICKER — phone vs tablet
-  // ══════════════════════════════════════════
-  let _deviceType = localStorage.getItem('cubix_device') || null;
-  window._deviceType  = _deviceType;
-  window._deviceCtrlH = (_deviceType === 'tablet') ? 150 : 95;
-
-  // Genuinely different sizes — phone is compact, tablet is large
+  // ═══════════════════════════════════
+  // DEVICE SIZES
+  // ═══════════════════════════════════
   const DEVICE_SIZES = {
-    phone: {
-      left:68, jump:76, fly:54, immort:62,
-      ctrlH:110, ctrlBottom:14, gap:10,
-    },
-    tablet: {
-      left:100, jump:116, fly:82, immort:94,
-      ctrlH:150, ctrlBottom:28, gap:18,
-    },
+    phone:  { left:68, jump:76, fly:54, immort:62, ctrlH:110, ctrlBottom:14, gap:10 },
+    tablet: { left:100, jump:116, fly:82, immort:94, ctrlH:150, ctrlBottom:28, gap:18 },
   };
 
-  // scaleGame defined FIRST so applyDeviceLayout can call it
+  window._deviceType  = localStorage.getItem('cubix_device') || null;
+  window._deviceCtrlH = 110;
+
+  // ═══════════════════════════════════
+  // SCALE GAME
+  // ═══════════════════════════════════
   function scaleGame() {
     const gc = document.getElementById('gameContainer');
     const gw = document.getElementById('gameWrapper');
     const dtype = window._deviceType;
 
-    // LAPTOP or no device chosen — native desktop layout, no scaling
     if (!dtype || dtype === 'laptop') {
       gc.style.cssText = '';
       gw.style.cssText = '';
@@ -2649,40 +2384,37 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     const vp  = window.visualViewport;
     const vw  = vp ? vp.width  : window.innerWidth;
     const vh  = vp ? vp.height : window.innerHeight;
+    const barH = window._deviceCtrlH || 110;
+    const availH = Math.max(80, vh - barH);
 
-    const bar  = document.getElementById('mobileControls');
-    const barH = (bar && bar.offsetHeight > 10) ? bar.offsetHeight : (window._deviceCtrlH || 110);
-    const safeB = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
-    const availH = Math.max(80, vh - barH - safeB);
+    const scale = dtype === 'phone'
+      ? Math.min(vw / GW, availH / GH)  // fill width, constrain height
+      : Math.min((vw - 20) / GW, (availH - 10) / GH);
 
-    let scale;
-    if (dtype === 'phone') {
-      // Phone in landscape: fill full width edge-to-edge, constrain height
-      scale = Math.min(vw / GW, availH / GH);
-    } else {
-      // Tablet: small padding so it breathes
-      scale = Math.min((vw - 24) / GW, (availH - 12) / GH);
-    }
+    const left = dtype === 'phone' ? Math.round((vw - GW * scale) / 2) : Math.round(Math.max(0, (vw - GW * scale) / 2));
+    const top  = Math.round(Math.max(0, (availH - GH * scale) / 2));
 
-    const scaledW = GW * scale;
-    const scaledH = GH * scale;
-    const left = Math.round(Math.max(0, (vw - scaledW) / 2));
-    const top  = Math.round(Math.max(0, (availH - scaledH) / 2));
-
-    gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${availH}px;overflow:hidden;display:block;background:#000;`;
-    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;box-shadow:0 0 0 1px rgba(0,255,255,0.18),0 0 40px rgba(0,255,255,0.12);`;
+    gw.style.cssText = `position:fixed;top:0;left:0;width:${vw}px;height:${vh}px;overflow:hidden;display:block;background:#000;`;
+    gc.style.cssText = `position:absolute;width:900px;height:540px;top:0;left:0;transform-origin:0 0;transform:translate(${left}px,${top}px) scale(${scale});overflow:hidden;`;
   }
   window.scaleGame = scaleGame;
 
-  // applyDeviceLayout: set CSS vars directly on :root — no specificity fights
+  // ═══════════════════════════════════
+  // APPLY DEVICE LAYOUT
+  // ═══════════════════════════════════
   function applyDeviceLayout(type) {
-    _deviceType = type;
     window._deviceType  = type;
-    window._deviceCtrlH = DEVICE_SIZES[type].ctrlH;
-    localStorage.setItem('cubix_device', type);
-    const s = DEVICE_SIZES[type];
+    window._deviceCtrlH = (DEVICE_SIZES[type] || {}).ctrlH || 110;
 
-    // Set CSS variables directly on documentElement — always takes effect immediately
+    if (type === 'laptop') {
+      document.getElementById('mobileControls').style.display = 'none';
+      scaleGame();
+      return;
+    }
+
+    const s = DEVICE_SIZES[type];
+    if (!s) return;
+
     const root = document.documentElement;
     root.style.setProperty('--btn-lr',     s.left   + 'px');
     root.style.setProperty('--btn-jump',   s.jump   + 'px');
@@ -2690,29 +2422,19 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     root.style.setProperty('--btn-imm',    s.immort + 'px');
     root.style.setProperty('--ctrl-bar-h', s.ctrlH  + 'px');
 
-    // Set ctrl-zone bottom + gaps directly on elements
     document.querySelectorAll('.ctrl-zone').forEach(z => z.style.bottom = s.ctrlBottom + 'px');
     const cl = document.getElementById('ctrlLeft');
     const cr = document.getElementById('ctrlRight');
     if (cl) cl.style.gap = s.gap + 'px';
-    if (cr) cr.style.gap = Math.round(s.gap * 0.55) + 'px';
+    if (cr) cr.style.gap = Math.round(s.gap * 0.6) + 'px';
 
-    // Double rAF ensures layout is painted before we measure/scale
     requestAnimationFrame(() => requestAnimationFrame(scaleGame));
   }
   window.applyDeviceLayout = applyDeviceLayout;
 
-  // ── DEVICE PICKER — always shown first, no exceptions ──
-  function tryLockLandscape() {
-    try {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      } else if (screen.lockOrientation)    { screen.lockOrientation('landscape'); }
-        else if (screen.mozLockOrientation) { screen.mozLockOrientation('landscape'); }
-        else if (screen.msLockOrientation)  { screen.msLockOrientation('landscape'); }
-    } catch(e) {}
-  }
-
+  // ═══════════════════════════════════
+  // PORTRAIT WATCH (phone only)
+  // ═══════════════════════════════════
   function _checkPortrait() {
     const isPortrait = window.innerHeight > window.innerWidth;
     const pb = document.getElementById('portraitBlock');
@@ -2720,63 +2442,240 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     if (!isPortrait) scaleGame();
   }
 
+  function tryLockLandscape() {
+    try {
+      if (screen.orientation && screen.orientation.lock)
+        screen.orientation.lock('landscape').catch(()=>{});
+    } catch(e) {}
+  }
+
+  // ═══════════════════════════════════
+  // AFTER DEVICE CHOSEN
+  // ═══════════════════════════════════
   function _afterDeviceChosen(type) {
-    // Hide picker and portrait blocker
     const picker = document.getElementById('devicePicker');
     const pb     = document.getElementById('portraitBlock');
     if (picker) picker.style.display = 'none';
     if (pb)     pb.style.display     = 'none';
 
-    if (type === 'laptop') {
-      // Laptop — clear any mobile overrides, show menu
-      document.documentElement.style.removeProperty('--btn-lr');
-      document.documentElement.style.removeProperty('--btn-jump');
-      document.documentElement.style.removeProperty('--btn-fly');
-      document.documentElement.style.removeProperty('--btn-imm');
-      document.documentElement.style.removeProperty('--ctrl-bar-h');
-      const gc = document.getElementById('gameContainer');
-      const gw = document.getElementById('gameWrapper');
-      if (gc) gc.style.cssText = '';
-      if (gw) gw.style.cssText = '';
-    } else {
-      applyDeviceLayout(type);
-    }
+    applyDeviceLayout(type);
 
     if (type === 'phone') {
       tryLockLandscape();
       _checkPortrait();
-      window.addEventListener('resize', _checkPortrait);
+      window.addEventListener('resize',            _checkPortrait);
       window.addEventListener('orientationchange', () => setTimeout(_checkPortrait, 200));
     }
 
-    showMenu('mainMenu');
+    if (typeof showMenu === 'function') showMenu('mainMenu');
   }
 
+  // ═══════════════════════════════════
+  // INIT — always show picker first
+  // ═══════════════════════════════════
   function initDevicePicker() {
-    const saved = localStorage.getItem('cubix_device');
-    if (saved && sessionStorage.getItem('cubix_device_chosen')) {
-      // Same browser session — skip picker, apply saved layout
-      _afterDeviceChosen(saved);
-      return;
-    }
-    // Always show picker on fresh page load
+    // ALWAYS show picker — no exceptions, no saved-state skipping
     const picker = document.getElementById('devicePicker');
     if (picker) picker.style.display = 'flex';
+  }
+
+  function _pick(type) {
+    localStorage.setItem('cubix_device', type);
+    sessionStorage.setItem('cubix_chosen', '1');
+    _afterDeviceChosen(type);
   }
 
   const bPhone  = document.getElementById('bDevPhone');
   const bIpad   = document.getElementById('bDevIpad');
   const bLaptop = document.getElementById('bDevLaptop');
-
-  if (bPhone)  bPhone.addEventListener('click',  () => { localStorage.setItem('cubix_device','phone');  sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('phone');  });
-  if (bIpad)   bIpad.addEventListener('click',   () => { localStorage.setItem('cubix_device','tablet'); sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('tablet'); });
-  if (bLaptop) bLaptop.addEventListener('click', () => { localStorage.setItem('cubix_device','laptop'); sessionStorage.setItem('cubix_device_chosen','1'); _afterDeviceChosen('laptop'); });
+  if (bPhone)  bPhone.addEventListener('click',  () => _pick('phone'));
+  if (bIpad)   bIpad.addEventListener('click',   () => _pick('tablet'));
+  if (bLaptop) bLaptop.addEventListener('click', () => _pick('laptop'));
 
   initDevicePicker();
 
+  // Re-scale on resize
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scaleGame);
+  }
+  window.addEventListener('resize', scaleGame);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(scaleGame, 100);
+    setTimeout(scaleGame, 400);
+  });
 
+  // ═══════════════════════════════════
+  // TOUCH CONTROLS
+  // ═══════════════════════════════════
+  const BTN_MAP = {
+    btnLeft:  ['ArrowLeft'],
+    btnRight: ['ArrowRight'],
+    btnJump:  ['Space'],
+  };
 
-  // Read iOS safe-area-inset-bottom via a probe element
+  const _held = {};
+
+  function _press(key) {
+    if (_held[key]) return;
+    _held[key] = true;
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: key, bubbles: true }));
+  }
+  function _release(key) {
+    if (!_held[key]) return;
+    _held[key] = false;
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: key, bubbles: true }));
+  }
+
+  Object.entries(BTN_MAP).forEach(([btnId, keys]) => {
+    const el = document.getElementById(btnId);
+    if (!el) return;
+    el.addEventListener('touchstart', e => { e.preventDefault(); keys.forEach(_press); el.classList.add('pressed'); }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); keys.forEach(_release); el.classList.remove('pressed'); }, { passive: false });
+    el.addEventListener('touchcancel',e => { keys.forEach(_release); el.classList.remove('pressed'); });
+  });
+
+  // Fly button
+  const flyBtn = document.getElementById('btnFly');
+  if (flyBtn) {
+    flyBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      flyBtn.classList.add('pressed');
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true }));
+    }, { passive: false });
+    flyBtn.addEventListener('touchend', e => {
+      e.preventDefault();
+      flyBtn.classList.remove('pressed');
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyF', bubbles: true }));
+    }, { passive: false });
+  }
+
+  // Immortal button
+  const immBtn = document.getElementById('btnImmort');
+  if (immBtn) {
+    immBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      immBtn.classList.add('pressed');
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', bubbles: true }));
+    }, { passive: false });
+    immBtn.addEventListener('touchend', e => {
+      e.preventDefault();
+      immBtn.classList.remove('pressed');
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyI', bubbles: true }));
+    }, { passive: false });
+  }
+
+  // ── Dim controls when not playing ──
+  setInterval(() => {
+    const ctrl = document.getElementById('mobileControls');
+    if (!ctrl) return;
+    const dtype = window._deviceType;
+    if (!dtype || dtype === 'laptop') { ctrl.style.display = 'none'; return; }
+    ctrl.style.display      = 'flex';
+    const inPlay = (typeof STATE !== 'undefined' && STATE === 'playing');
+    ctrl.style.opacity      = inPlay ? '1' : '0.15';
+    ctrl.style.pointerEvents = inPlay ? '' : 'none';
+  }, 200);
+
+  // ── Level badge ──
+  setInterval(() => {
+    const badge = document.getElementById('_lvlBadge');
+    if (!badge) return;
+    const playing = typeof STATE !== 'undefined' && STATE === 'playing';
+    badge.textContent = playing ? 'LVL '+(lvlIdx+1)+'  /  '+(LEVELS[lvlIdx]?LEVELS[lvlIdx].name:'') : '';
+    badge.style.opacity = playing ? '1' : '0';
+  }, 200);
+
+  // ── Pause button ──
+  setTimeout(() => {
+    const pb = document.getElementById('_pauseBtn');
+    if (!pb) return;
+    function doPause(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (typeof STATE === 'undefined') return;
+      if (STATE === 'playing') { STATE = 'paused';  showMenu('pauseMenu'); }
+      else if (STATE === 'paused') { STATE = 'playing'; showMenu(null, true); }
+    }
+    pb.addEventListener('touchstart', doPause, { passive: false });
+    pb.addEventListener('click', doPause);
+  }, 0);
+
+  setInterval(() => {
+    const pb = document.getElementById('_pauseBtn');
+    if (!pb) return;
+    const playing = typeof STATE !== 'undefined' && STATE === 'playing';
+    const paused  = typeof STATE !== 'undefined' && STATE === 'paused';
+    pb.style.display = (playing || paused) ? 'flex' : 'none';
+    pb.textContent = paused ? '▶' : '⏸';
+  }, 200);
+
+  // ── iOS Audio unlock ──
+  function _unlockAudio() {
+    try {
+      const a = AC();
+      if (a.state === 'suspended') a.resume();
+      const buf = a.createBuffer(1,1,22050);
+      const src = a.createBufferSource();
+      src.buffer = buf; src.connect(a.destination); src.start(0);
+    } catch(e) {}
+  }
+  document.addEventListener('touchstart', _unlockAudio, { passive: true });
+
+  // ── Mobile sound effects ──
+  function _mTone(freq, type, dur, vol, delay) {
+    setTimeout(() => {
+      try {
+        const a=AC(), o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination);
+        o.type=type; o.frequency.value=freq;
+        g.gain.setValueAtTime(0, a.currentTime);
+        g.gain.linearRampToValueAtTime(vol, a.currentTime+0.012);
+        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+dur);
+        o.start(); o.stop(a.currentTime+dur+0.05);
+      } catch(e) {}
+    }, delay || 0);
+  }
+  function _sfxTap()        { _mTone(900,'sine',0.04,0.10); }
+  function _sfxConfirm()    { _mTone(440,'sine',0.12,0.12); _mTone(660,'sine',0.16,0.13,80); _mTone(880,'sine',0.18,0.11,160); }
+  function _sfxLevelClear() { [523,659,784,1047].forEach((f,i)=>_mTone(f,'sine',0.22,0.13,i*90)); }
+  function _sfxGameOver()   { _mTone(440,'sawtooth',0.3,0.15); _mTone(280,'sawtooth',0.4,0.15,200); }
+  function _sfxPause()      { _mTone(600,'sine',0.10,0.09); _mTone(400,'sine',0.14,0.09,80); }
+
+  ['btnLeft','btnRight','btnJump','btnFly','btnImmort',
+   'bPlay','bResume','bResume2','bNext','bWP','bWardrobe','bSwitchDevice','bReboot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('touchstart', _sfxTap, { passive: true });
+  });
+  ['bDevPhone','bDevIpad','bDevLaptop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', _sfxConfirm);
+  });
+
+  setInterval(() => {
+    if (typeof STATE === 'undefined') return;
+    if (STATE === 'levelcomplete' && !window._lcPlayed) { window._lcPlayed=true; _sfxLevelClear(); }
+    else if (STATE !== 'levelcomplete') window._lcPlayed = false;
+    if (STATE === 'gameover' && !window._goPlayed) { window._goPlayed=true; _sfxGameOver(); }
+    else if (STATE !== 'gameover') window._goPlayed = false;
+    if (STATE === 'paused' && !window._pPlayed) { window._pPlayed=true; _sfxPause(); }
+    else if (STATE !== 'paused') window._pPlayed = false;
+  }, 150);
+
+  // ── lvl switcher ──
+  const lvlBtn = document.getElementById('_lvlSwitchBtn');
+  if (lvlBtn) {
+    lvlBtn.addEventListener('click', () => {
+      if (typeof lvlIdx === 'undefined') return;
+      lvlIdx = (lvlIdx + 1) % (typeof LEVELS !== 'undefined' ? LEVELS.length : 10);
+      if (typeof initLvl === 'function') { initLvl(lvlIdx); if(typeof _initCheckpoints==='function') _initCheckpoints(); }
+    });
+  }
+
+  // ── Allow scroll on menus only ──
+  document.addEventListener('touchmove', e => {
+    if (typeof STATE !== 'undefined' && STATE === 'playing') e.preventDefault();
+  }, { passive: false });
+
+  // safe-area probe
   (function() {
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);pointer-events:none;';
@@ -2785,45 +2684,6 @@ document.getElementById('bSwitchDevice').addEventListener('click', () => {
     document.documentElement.style.setProperty('--sab', sab + 'px');
     document.body.removeChild(probe);
   })();
-
-  scaleGame();
-
-  // Re-scale on resize AND when iOS visual viewport changes (keyboard, browser chrome)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scaleGame);
-    window.visualViewport.addEventListener('scroll', scaleGame);
-  }
-  window.addEventListener('resize', scaleGame);
-  window.addEventListener('orientationchange', () => {
-    setTimeout(scaleGame, 100);
-    setTimeout(scaleGame, 400); // double-fire — iOS fires orientationchange before resize completes
-  });
-
-  // ── Mobile level switcher button ──
-  const lvlBtn = document.getElementById('_lvlSwitchBtn');
-  if (lvlBtn) {
-    lvlBtn.addEventListener('click', () => {
-      if (typeof _isAdmin === 'undefined' || !_isAdmin()) return;
-      const n = parseInt(prompt('Warp to level (1-10):'));
-      if (!isNaN(n) && n >= 1 && n <= 10) {
-        if (typeof _cpX !== 'undefined') { _cpX=null; _cpY=null; _cpLvl=null; }
-        lvlIdx = n - 1;
-        score=0; lives=5; combo=1; comboT=0; dying=false;
-        initLvl(lvlIdx);
-        if (typeof _initCheckpoints !== 'undefined') _initCheckpoints();
-        STATE = 'playing';
-        ['mainMenu','pauseMenu','lcMenu','goMenu','winMenu','wardrobeMenu'].forEach(id => {
-          const el = document.getElementById(id); if (el) el.classList.add('hidden');
-        });
-        try { startAmbient(); } catch(e) {}
-      }
-    });
-    // Show/hide based on privilege
-    setInterval(() => {
-      const isAdm = (typeof _isAdmin !== 'undefined' && _isAdmin());
-      lvlBtn.style.display = (isAdm && typeof STATE !== 'undefined' && STATE === 'playing') ? 'block' : 'none';
-    }, 400);
-  }
 
 })();
 </script>
