@@ -38,7 +38,6 @@ body {
   position:relative;
   width: 900px;
   height: 540px;
-  /* Scale down to fit viewport width on smaller screens */
   max-width: 100vw;
   overflow:hidden;
   box-shadow:
@@ -64,7 +63,16 @@ body {
   border-right:2px solid rgba(255,0,255,0.5);
 }
 
-canvas{display:block;}
+/* ── Horizontal button row for menus ── */
+.btn-row {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.btn-row .btn { margin: 0; }
 #gameCanvas{position:absolute;top:0;left:0;z-index:1;}
 #scanlineCanvas{position:absolute;top:0;left:0;z-index:2;pointer-events:none;opacity:0.08;}
 
@@ -398,30 +406,30 @@ canvas{display:block;}
 #mobileControls {
   display: none;
   width: 100%;
-  height: 150px;
+  height: 130px;
   position: relative;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
   flex-shrink: 0;
-  /* Small gap so controls are visually separated & pushed down */
-  margin-top: 8px;
+  /* Tight gap between game and controls */
+  margin-top: 2px;
 }
 
 /* ── On touch devices in landscape: fill viewport exactly ── */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
   html, body {
-    /* No bounce-scrolling during play but allow reposition */
     height: auto;
     overflow-x: hidden;
     overflow-y: auto;
   }
   #mobileControls { display: flex !important; }
   #gameContainer {
+    /* Fill full width, let height be auto based on 5:3 ratio */
     width: 100vw !important;
     max-width: 100vw !important;
-    /* Viewport height minus control bar (150) minus gap (8) minus margin (2) */
-    height: calc(100vh - 164px) !important;
+    /* Viewport minus control bar (130px) minus gap (4px) */
+    height: calc(100vh - 138px) !important;
     min-height: 160px !important;
   }
   #gameContainer canvas {
@@ -444,8 +452,8 @@ canvas{display:block;}
 }
 
 /* padding-bottom pushes buttons down from the top edge of the bar */
-#ctrlLeft  { left: 20px;  flex-direction: row;    align-items: flex-end; gap: 10px; padding-bottom: 12px; }
-#ctrlRight { right: 20px; flex-direction: column; align-items: center;   gap: 8px;  padding-bottom: 12px; }
+#ctrlLeft  { left: 20px;  flex-direction: row;    align-items: flex-end; gap: 10px; padding-bottom: 18px; }
+#ctrlRight { right: 20px; flex-direction: column; align-items: center;   gap: 8px;  padding-bottom: 18px; }
 
 .ctrl-btn {
   border-radius: 50%;
@@ -677,8 +685,10 @@ canvas{display:block;}
       <div class="stat"><div class="stl">LEVEL</div><div class="stv" id="lcLv">1</div></div>
       <div class="stat"><div class="stl">ORBS</div><div class="stv" id="lcOr">0/0</div></div>
     </div>
-    <button class="btn" id="bNext">NEXT LEVEL ▶</button>
-    <button class="btn p" id="bLCQ">MAIN MENU</button>
+    <div class="btn-row">
+      <button class="btn" id="bNext">NEXT LEVEL ▶</button>
+      <button class="btn p" id="bLCQ">MAIN MENU</button>
+    </div>
   </div>
 
   <!-- WIN -->
@@ -690,8 +700,10 @@ canvas{display:block;}
       <div class="stat"><div class="stl">FINAL SCORE</div><div class="stv" id="wSc">0</div></div>
       <div class="stat"><div class="stl">HIGH SCORE</div><div class="stv" id="wBe">0</div></div>
     </div>
-    <button class="btn" id="bWP">▶ &nbsp;PLAY AGAIN</button>
-    <button class="btn p" id="bWM">MAIN MENU</button>
+    <div class="btn-row">
+      <button class="btn" id="bWP">▶ &nbsp;PLAY AGAIN</button>
+      <button class="btn p" id="bWM">MAIN MENU</button>
+    </div>
   </div>
 
   <!-- GAME OVER -->
@@ -703,8 +715,10 @@ canvas{display:block;}
       <div class="stat"><div class="stl">SCORE</div><div class="stv" id="goSc">0</div></div>
       <div class="stat"><div class="stl">BEST</div><div class="stv" id="goBe">0</div></div>
     </div>
-    <button class="btn" id="bRe">↺ &nbsp;RETRY</button>
-    <button class="btn p" id="bGOQ">MAIN MENU</button>
+    <div class="btn-row">
+      <button class="btn" id="bRe">↺ &nbsp;RETRY</button>
+      <button class="btn p" id="bGOQ">MAIN MENU</button>
+    </div>
   </div>
 
   <!-- WARDROBE -->
