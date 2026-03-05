@@ -20,12 +20,10 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  /* Scrollable — user can drag to reposition */
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-/* Wrapper stacks game canvas + control bar */
+/* Wrapper — just centers the game */
 #gameWrapper {
   display: flex;
   flex-direction: column;
@@ -402,35 +400,31 @@ body {
   #portraitBlock { display: flex !important; }
 }
 
-/* ── Mobile control bar: hidden by default, shown on touch ── */
+/* ── Mobile control bar: overlay at bottom, doesn't push game ── */
 #mobileControls {
   display: none;
   width: 100%;
-  height: 130px;
-  position: relative;
+  height: 120px;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  flex-shrink: 0;
-  /* Tight gap between game and controls */
-  margin-top: 2px;
+  z-index: 100;
 }
 
-/* ── On touch devices in landscape: fill viewport exactly ── */
+/* ── On touch landscape: game fills entire viewport, controls float over bottom ── */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
   html, body {
-    height: auto;
-    overflow-x: hidden;
-    overflow-y: auto;
+    height: 100vh;
+    overflow: hidden;
   }
   #mobileControls { display: flex !important; }
   #gameContainer {
-    /* Fill full width, let height be auto based on 5:3 ratio */
+    /* Full viewport — no stretch, game is native size */
     width: 100vw !important;
     max-width: 100vw !important;
-    /* Viewport minus control bar (130px) minus gap (4px) */
-    height: calc(100vh - 138px) !important;
-    min-height: 160px !important;
+    height: 100vh !important;
   }
   #gameContainer canvas {
     width: 100% !important;
@@ -438,7 +432,7 @@ body {
   }
 }
 
-/* ── Also show controls on any touch device (for testing in browsers) ── */
+/* ── Also show controls on any touch device ── */
 @media (hover: none) and (pointer: coarse) {
   #mobileControls { display: flex !important; }
 }
@@ -451,9 +445,9 @@ body {
   align-items: flex-end;
 }
 
-/* padding-bottom pushes buttons down from the top edge of the bar */
-#ctrlLeft  { left: 20px;  flex-direction: row;    align-items: flex-end; gap: 10px; padding-bottom: 18px; }
-#ctrlRight { right: 20px; flex-direction: column; align-items: center;   gap: 8px;  padding-bottom: 18px; }
+/* Controls sit right at the bottom edge of the floating bar */
+#ctrlLeft  { left: 20px;  flex-direction: row;    align-items: flex-end; gap: 10px; padding-bottom: 10px; }
+#ctrlRight { right: 20px; flex-direction: column; align-items: center;   gap: 8px;  padding-bottom: 10px; }
 
 .ctrl-btn {
   border-radius: 50%;
@@ -2294,11 +2288,9 @@ setInterval(()=>{
     try { AC(); } catch(e) {}
   }, { once: true });
 
-  // ── Prevent scroll/zoom during play only ──
+  // ── Prevent scroll/zoom during gameplay ──
   document.addEventListener('touchmove', e => {
-    // Allow scroll on the control bar so user can reposition the page
-    if (e.target.closest('#mobileControls')) return;
-    if (typeof STATE !== 'undefined' && STATE === 'playing') e.preventDefault();
+    e.preventDefault();
   }, { passive: false });
 
 })();
